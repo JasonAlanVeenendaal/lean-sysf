@@ -1,0 +1,16 @@
+name = "lean-sysf"
+version = "0.1.0"
+defaultTargets = ["lean-sysf"]
+
+[[require]]
+name = "lean-subst"
+scope = "amarmaduke"
+git = "https://github.com/amarmaduke/lean-subst"
+rev = "main"
+
+[[lean_lib]]
+name = "LeanSysF"
+
+[[lean_exe]]
+name = "lean-sysf"
+root = "Main"

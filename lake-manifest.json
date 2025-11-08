@@ -1,0 +1,15 @@
+{"version": "1.1.0",
+ "packagesDir": ".lake/packages",
+ "packages":
+ [{"url": "https://github.com/amarmaduke/lean-subst",
+   "type": "git",
+   "subDir": null,
+   "scope": "amarmaduke",
+   "rev": "cd4fc9bc01f723fae3f740ddc81a298d3a53627e",
+   "name": "«lean-subst»",
+   "manifestFile": "lake-manifest.json",
+   "inputRev": "main",
+   "inherited": false,
+   "configFile": "lakefile.toml"}],
+ "name": "«lean-sysf»",
+ "lakeDir": ".lake"}
