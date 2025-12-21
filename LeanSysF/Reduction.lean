@@ -6,10 +6,19 @@ import LeanSysF.Term
 open LeanSubst
 
 inductive Red : Term -> Term -> Prop where
-| beta {A b t} : Red ((:λ[A] b) :@ t) (b[%t::I])
-| app1 {f f' a} : Red f f' -> Red (f :@ a) (f' :@ a)
-| app2 {a a' f} : Red a a' -> Red (f :@ a) (f :@ a')
-| lam {A t t'} : Red t t' -> Red (:λ[A] t) (:λ[A] t')
+| beta {A b t} : Red ((:λ[A] b) :@ t) (b[su t::+0])
+| tbeta {b t} : Red ((Λ b) :@[t]) (b[su t::+0])
+| ctor {v i ts ts'} :
+  (∀ j ≠ i, ts j = ts' j) ->
+  Red (ts i) (ts' i) ->
+  Red (.ctor v ts) (.ctor v ts')
+| bind1 {v i ts ts' t} :
+  (∀ j ≠ i, ts j = ts' j) ->
+  Red (ts i) (ts' i) ->
+  Red (.bind v ts t) (.bind v ts' t)
+| bind2 {v ts t t'} :
+  Red t t' ->
+  Red (.bind v ts t) (.bind v ts t')
 
 infix:80 " ~> " => Red
 infix:81 " ~>* " => Star Red
