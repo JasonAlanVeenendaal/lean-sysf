@@ -1,9 +1,9 @@
 import LeanSubst
-import LeanSysF.Term
-import LeanSysF.Kinding
-import LeanSysF.Typing
-import LeanSysF.Reduction
-import LeanSysF.Progress
+import OneSortHomArityGen.Term
+import OneSortHomArityGen.Kinding
+import OneSortHomArityGen.Typing
+import OneSortHomArityGen.Reduction
+import OneSortHomArityGen.Progress
 
 open LeanSubst
 
@@ -15,30 +15,25 @@ theorem preservation_step : Γ ⊢ t : A -> t ~> t' -> Γ ⊢ t' : A := by
     generalize zdef : f :@ a = z at *
     cases r; all_goals try solve | cases zdef
     case beta A' b' t' =>
-      injection zdef with _ e; simp at e
+      injection zdef with _ _ e; simp at e
       cases e; case _ e1 e2 =>
       subst e1; subst e2
       replace j1 := Typing.lam_inv j1
       replace j1 := Typing.beta j1 j2; simp at j1
       apply j1
     case ctor v i ts ts' h r =>
-      injection zdef with e1 e2; subst e1; subst e2
-      simp at *
-      cases i; case _ i p =>
-      cases i; case _ =>
+      injection zdef with e1 e2 e3; subst e1 e2 e3; simp at *
+      cases i using Fin.cases2
+      case _ =>
         simp at *; subst h
         replace ih1 := ih1 r
-        rw [<-mk2_eta (t := ts')]
+        rw [<-Vec.eta2 (t := ts')]
         apply Typing.app ih1 j2
       case _ i =>
-      cases i; case _ i =>
         simp at *; subst h
         replace ih2 := ih2 r
-        rw [<-mk2_eta (t := ts')]
+        rw [<-Vec.eta2 (t := ts')]
         apply Typing.app j1 ih2
-      case _ i =>
-        simp [Variant.arity] at p
-        omega
   case lam Γ A B t j1 j2 ih =>
     cases r
     case bind1 i ts h r =>
@@ -55,35 +50,28 @@ theorem preservation_step : Γ ⊢ t : A -> t ~> t' -> Γ ⊢ t' : A := by
     generalize zdef : f :@[a] = z at *
     cases r; all_goals try solve | cases zdef
     case tbeta b' t' =>
-      injection zdef with _ e; simp at e
+      injection zdef with _ _ e; simp at e
       cases e; case _ e1 e2 =>
       subst e1; subst e2
       cases j1; case _ j1 =>
       have lem := Typing.beta_type j1 j2
       subst j3; apply lem
     case ctor v i ts ts' h r =>
-      injection zdef with e1 e2; subst e1; subst e2
-      simp at *
-      cases i; case _ i p =>
-      cases i; case _ =>
+      injection zdef with e1 e2 e3; subst e1 e2 e3; simp at *
+      cases i using Fin.cases2
+      case _ =>
         simp at *; subst h
         replace ih := ih r
-        rw [<-mk2_eta (t := ts')]
+        rw [<-Vec.eta2 (t := ts')]
         apply Typing.tapp ih j2 j3
-      case _ i =>
-      cases i; case _ i =>
-        simp at *; subst h
+      case _ =>
+        simp at r
         have lem := Kinding.value j2
-        replace lem := Value.sound lem
-        exfalso; apply lem _ r
-      case _ i =>
-        simp [Variant.arity] at p
-        omega
+        exfalso; apply Value.sound lem _ r
   case tlam Γ P t j ih =>
     cases r
     case bind1 i ts' h r =>
-      cases i; case _ i p =>
-      simp [Variant.arity] at p
+      apply Fin.elim0 i
     case bind2 t' r =>
       replace ih := ih r
       apply Typing.tlam ih

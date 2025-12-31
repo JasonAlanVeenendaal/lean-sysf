@@ -9,6 +9,9 @@ git = "https://github.com/amarmaduke/lean-subst"
 rev = "main"
 
 [[lean_lib]]
+name = "OneSortHomArityGen"
+
+[[lean_lib]]
 name = "LeanSysF"
 
 [[lean_exe]]

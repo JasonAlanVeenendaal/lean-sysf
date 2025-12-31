@@ -1,7 +1,7 @@
 
 import LeanSubst
-import LeanSysF.Term
-import LeanSysF.Kinding
+import OneSortHomArityGen.Term
+import OneSortHomArityGen.Kinding
 
 open LeanSubst
 
@@ -18,10 +18,10 @@ inductive Typing : Ctx Term -> Term -> Term -> Prop where
   Γ ⊢ A type ->
   Typing (A::Γ) t B[+1] ->
   Typing Γ (:λ[A] t) (A -:> B)
-| tapp {Γ P P' f a} :
+| tapp {Γ} {P P' : Term} {f a} :
   Typing Γ f (:∀ P) ->
   Γ ⊢ a type ->
-  P' = P[.su a::+0] ->
+  P' = P[su a::+0] ->
   Typing Γ (f :@[a]) P'
 | tlam {Γ P t} :
   Typing (★::Γ) t P ->
@@ -71,7 +71,7 @@ theorem Typing.rename (Δ : Ctx Term) (r : Ren) :
     apply Kinding.rename _ _ j2 h
   case lam Γ A B t j1 j2 ih =>
     replace ih := ih (A[r]::Δ) r.lift (Ctx.rename_lift A h)
-    rw [Ren.to_lift] at ih; simp at ih
+    rw [Ren.to_lift (S := Term)] at ih; simp at ih
     simp; apply Typing.lam
     apply Kinding.rename _ _ j1 h
     simp; apply ih
@@ -82,7 +82,7 @@ theorem Typing.rename (Δ : Ctx Term) (r : Ren) :
     apply ih2 Δ r h
   case tlam Γ P t j ih =>
     replace ih := ih (★[r]::Δ) r.lift (Ctx.rename_lift ★ h)
-    rw [Ren.to_lift] at ih; simp at ih
+    rw [Ren.to_lift (S := Term)] at ih; simp at ih
     simp; apply Typing.tlam ih
   case tapp Γ P P' f a j1 j2 j3 ih =>
     replace ih := ih Δ r h; simp at ih
@@ -148,7 +148,7 @@ theorem Typing.subst (Δ : Ctx Term) (σ : Subst Term) :
       (Kinding.subst_lift ★ h2)
       (subst_lift ★ h3)
     simp at *; apply ih
-  case tapp j1 j2 j3 ih =>
+  case tapp Γ P P' f a j1 j2 j3 ih =>
     replace ih := ih Δ σ h1 h2 h3; simp at ih
     simp; apply Typing.tapp
     apply ih; apply Kinding.subst Δ σ j2 h1 h2
@@ -210,8 +210,7 @@ theorem Typing.lam_inv :
   generalize wdef : (A -:> B) = w at j
   cases j
   all_goals try solve | (try injection zdef; try injection wdef)
-  injection zdef with _ e1 e2; subst e2
-  injection wdef with _ e3
-  case _ j _ =>
-  simp at *; cases e3; case _ e1 e2 =>
-  subst e1; subst e2; exact j
+  injection zdef with _ _ e1 e2; simp at e1; subst e1; subst e2
+  injection wdef with _ _ e; simp at e
+  rcases e with ⟨e1, e2⟩; subst e1; subst e2
+  case _ j => exact j

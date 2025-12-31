@@ -1,14 +1,14 @@
 
 import LeanSubst
-import LeanSysF.Utility
-import LeanSysF.Term
+import OneSortHomArityGen.Utility
+import OneSortHomArityGen.Term
 
 open LeanSubst
 
 inductive FV : Term -> Nat -> Prop
 | var : FV #x x
-| ctor {i : Fin v.arity} {ts : Fin v.arity -> Term} : FV (ts i) x -> FV (.ctor v ts) x
-| bind1 {i : Fin v.arity} {ts : Fin v.arity -> Term} : FV (ts i) x -> FV (.bind v ts t) x
+| ctor {i : Fin n} {ts : Vec Term n} : FV ts[i] x -> FV (.ctor v ts) x
+| bind1 {i : Fin n} {ts : Vec Term n} : FV ts[i] x -> FV (.bind v ts t) x
 | bind2 : FV t (x + 1) -> FV (.bind v ts t) x
 
 instance : Membership Nat Term where

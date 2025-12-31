@@ -1,7 +1,7 @@
 
 import LeanSubst
-import LeanSysF.Term
-import LeanSysF.FreeVar
+import OneSortHomArityGen.Term
+import OneSortHomArityGen.FreeVar
 
 open LeanSubst
 
@@ -27,11 +27,11 @@ theorem Ctx.strong_rename_lift {A : Term} {Δ Γ : Ctx Term} {r : Ren} B :
   cases x <;> simp at *
   case zero =>
     subst h3; simp [Ren.lift]
-    rw [Ren.to_lift]; simp
+    rw [Ren.to_lift (S := Term)]; simp
   case succ x =>
     replace h1 := h1 x h2
     subst h3; simp [Ren.lift]
-    rw [Ren.to_lift]; rw [h1]; simp
+    rw [Ren.to_lift (S := Term)]; rw [h1]; simp
 
 theorem Ctx.rename_lift {Δ Γ : Ctx Term} {r : Ren} B :
   (∀ x T, Γ[x] = T -> Δ[r x] = T[r]) ->
@@ -41,11 +41,11 @@ theorem Ctx.rename_lift {Δ Γ : Ctx Term} {r : Ren} B :
   cases x <;> simp at *
   case zero =>
     subst h3; simp [Ren.lift]
-    rw [Ren.to_lift]; simp
+    rw [Ren.to_lift (S := Term)]; simp
   case succ x =>
     replace h1 := h1 x
     subst h3; simp [Ren.lift]
-    rw [Ren.to_lift]; rw [h1]; simp
+    rw [Ren.to_lift (S := Term)]; rw [h1]; simp
 
 theorem Ctx.subst_re_lift {Γ Δ : Ctx Term} A {σ : Subst Term} :
   (∀ x T y, Γ[x] = T -> σ x = re y -> Δ[y] = T[σ]) ->
@@ -88,7 +88,7 @@ theorem Kinding.strong_rename {Γ A} (Δ : Ctx Term) (r : Ren) :
     have lem1 := Ctx.strong_rename_lift ★ h2; simp at lem1
     have lem2 := ih (★::Δ) r.lift; simp at lem2
     replace lem2 := lem2 lem1
-    rw [Ren.to_lift] at lem2; simp at lem2; exact lem2
+    rw [Ren.to_lift (S := Term)] at lem2; simp at lem2; exact lem2
 
 theorem Kinding.rename {Γ A} (Δ : Ctx Term) (r : Ren) :
   Γ ⊢ A type ->
@@ -178,10 +178,7 @@ theorem Kinding.beta : (A::Γ) ⊢ P type -> Γ ⊢ B type -> Γ ⊢ P[su B::+0]
 theorem Kinding.injection_arrow : Γ ⊢ (A -:> B) type -> Γ ⊢ A type ∧ Γ ⊢ B type := by
   intro j; generalize zdef : A -:> B = z at *
   cases j; all_goals injection zdef
-  case arr A' B' j1 j2 e1 e2 =>
-    have lem1 : ∀ x, (λ i => mk2 A B i) x = (λ i => mk2 A' B' i) x := by
-      intro x; rw [e2]
-    have lem2 := lem1 0; simp [mk2] at lem2
-    have lem3 := lem1 1; simp [mk2] at lem3
-    subst lem2; subst lem3
-    apply And.intro j1 j2
+  case arr A' B' j1 j2 _ _ e =>
+    rw [Vec.inv2] at e
+    rcases e with ⟨e1, e2⟩; simp at e1 e2; subst e1 e2
+    simp [*]
