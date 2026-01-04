@@ -62,7 +62,7 @@
    "type": "git",
    "subDir": null,
    "scope": "amarmaduke",
-   "rev": "b6d7c591b106591017f9c9fdab699a28ae11669d",
+   "rev": "5654abc2f268978274defa2b457db5a597ca4911",
    "name": "«lean-subst»",
    "manifestFile": "lake-manifest.json",
    "inputRev": "main",
