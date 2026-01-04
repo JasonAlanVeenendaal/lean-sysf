@@ -7,6 +7,8 @@ import OneSortHomArityGen.Reduction
 import OneSortHomArityGen.Progress
 import OneSortHomArityGen.SN
 
+namespace OneSortHomArityGen
+
 open LeanSubst
 
 -- Heavily following Lectures in Curry-Howard and the autosubst work:
@@ -25,11 +27,6 @@ open LeanSubst
 -- 5. [4] also requires a 4th property of candidates (monotonicity of renaming)
 
 -- Shallow neutral, turns out to be enough
-@[simp]
-def Term.not_lam : Term -> Bool
-| bind .lam _ _ => false
-| bind .tlam _ _ => false
-| _ => true
 
 namespace Normalization.Verison1
 
@@ -363,7 +360,7 @@ theorem LR.weaken : LR (P::ξ) T[+1] t <-> LR ξ T t := by
   exact LR.rename (· + 1)
 
 theorem LR.subst : LR ξ T[σ] t <-> LR (λ i => LR ξ (σ i)) T t := by
-  induction T generalizing ξ t
+  induction T generalizing ξ σ t
   case var => simp
   case ctor v ts ih =>
     cases v <;> simp
@@ -407,9 +404,6 @@ theorem LR.subst : LR ξ T[σ] t <-> LR (λ i => LR ξ (σ i)) T t := by
       case _ i =>
       have lem2 : ↑((σ ∘ +1) i) = (Term.from_action (σ i))[+1] := by simp
       rw [lem2, LR.weaken]
-
-theorem Term.succ_not_star_implies_not_star : A[+1] ≠ ★ -> A ≠ ★ := by
-  intro h1 h2; subst h2; simp at h1
 
 theorem ΓR.rename (r : Ren) :
   Admissible ξ ->
@@ -563,3 +557,5 @@ theorem strong_normalization : Γ ⊢ t : A -> SN Red t := by
 
 
 end Normalization.Verison1
+
+end OneSortHomArityGen

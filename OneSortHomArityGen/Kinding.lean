@@ -3,6 +3,8 @@ import LeanSubst
 import OneSortHomArityGen.Term
 import OneSortHomArityGen.FreeVar
 
+namespace OneSortHomArityGen
+
 open LeanSubst
 
 inductive Kinding : Ctx Term -> Term -> Prop where
@@ -182,3 +184,8 @@ theorem Kinding.injection_arrow : Γ ⊢ (A -:> B) type -> Γ ⊢ A type ∧ Γ 
     rw [Vec.inv2] at e
     rcases e with ⟨e1, e2⟩; simp at e1 e2; subst e1 e2
     simp [*]
+
+theorem Kinding.type_not_star : Γ ⊢ A type -> A ≠ ★ := by
+  intro j h; subst h; cases j
+
+end OneSortHomArityGen

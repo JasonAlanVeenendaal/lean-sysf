@@ -3,6 +3,8 @@ import LeanSubst
 import OneSortHomArityGen.Term
 import OneSortHomArityGen.Kinding
 
+namespace OneSortHomArityGen
+
 open LeanSubst
 
 inductive Typing : Ctx Term -> Term -> Term -> Prop where
@@ -214,3 +216,5 @@ theorem Typing.lam_inv :
   injection wdef with _ _ e; simp at e
   rcases e with ⟨e1, e2⟩; subst e1; subst e2
   case _ j => exact j
+
+end OneSortHomArityGen

@@ -3,6 +3,8 @@ import LeanSubst
 import LeanSubst.Reduction
 import OneSortHomArityGen.Term
 
+namespace OneSortHomArityGen
+
 open LeanSubst
 
 inductive Red : Term -> Term -> Prop where
@@ -39,7 +41,7 @@ theorem Red.antirename {s t : Term} (r : Ren) :
   ∃ z, s ~> z ∧ t = z[r]
 := by
   intro h
-  generalize wdef : s[r:Term] = w at *
+  generalize wdef : s[r] = w at *
   induction h generalizing s r
   case beta A b t =>
     cases s <;> simp at wdef
@@ -114,7 +116,6 @@ theorem Red.antirename {s t : Term} (r : Ren) :
     rcases ih with ⟨z, h1, h2⟩
     exists (Term.bind v' ts' z); apply And.intro
     apply Red.bind2 _ h1; subst h2; simp
-    rw [Ren.to_lift (S := Term)]; simp
 
 theorem Red.ctor_star_lemma {ts ts'} i :
   (∀ j ≠ i, ts j = ts' j) ->
@@ -599,3 +600,5 @@ instance : Substitutive Red where
 --   instance : HasConfluence Red where
 --     confluence := confluence
 -- end Red
+
+end OneSortHomArityGen

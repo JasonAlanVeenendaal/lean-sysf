@@ -1,6 +1,8 @@
 import LeanSubst
 import OneSortHomArityGen.Typing
 
+namespace OneSortHomArityGen
+
 open LeanSubst
 
 def Term.beq : Term -> Term -> Bool
@@ -118,7 +120,7 @@ def infer (Γ : Ctx Term) : Term -> Option Term
   let a := ts 1
   let F <- infer Γ f
   let P <- F.is_all
-  if a.is_type Γ then P[su a::+0]
+  if a.is_type Γ then return P[su a::+0]
   else none
 | .bind .lam ts t => do
   let A := ts 0
@@ -210,3 +212,5 @@ def ex2 : Term := ex1 :@[ex0] :@ ex1
 
 #eval infer Ctx.nil ex1
 #eval infer Ctx.nil ex2
+
+end OneSortHomArityGen

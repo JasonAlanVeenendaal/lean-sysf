@@ -3,6 +3,8 @@ import OneSortHomArityGen.Term
 import OneSortHomArityGen.Reduction
 import OneSortHomArityGen.Progress
 
+namespace OneSortHomArityGen
+
 open LeanSubst
 
 theorem SN.var : SN Red #0 := by
@@ -14,3 +16,5 @@ theorem SN.monotone {t : Term} (r : Ren) : SN Red t -> SN Red t[r] := by
   replace h2 := Red.antirename r h2
   rcases h2 with ⟨z, h2, h3⟩; subst h3
   apply ih _ h2
+
+end OneSortHomArityGen

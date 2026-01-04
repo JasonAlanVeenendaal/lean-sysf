@@ -5,6 +5,8 @@ import OneSortHomArityGen.Typing
 import OneSortHomArityGen.Reduction
 import OneSortHomArityGen.Progress
 
+namespace OneSortHomArityGen
+
 open LeanSubst
 
 theorem preservation_step : Γ ⊢ t : A -> t ~> t' -> Γ ⊢ t' : A := by
@@ -82,3 +84,5 @@ theorem preservation : Γ ⊢ t : A -> t ~>* t' -> Γ ⊢ t' : A := by
   case _ => exact j
   case _ y z r1 r2 ih =>
     apply preservation_step ih r2
+
+end OneSortHomArityGen

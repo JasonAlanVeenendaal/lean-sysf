@@ -1,12 +1,13 @@
 
 import OneSortHomArityGen.FreeVar
--- import OneSortHomArityGen.Infer
+import OneSortHomArityGen.Infer
 import OneSortHomArityGen.Kinding
 import OneSortHomArityGen.Preservation
 import OneSortHomArityGen.Progress
 import OneSortHomArityGen.Reduction
 import OneSortHomArityGen.SN
-import OneSortHomArityGen.StrongNormalization
+import OneSortHomArityGen.StrongNorm1
+import OneSortHomArityGen.StrongNorm2
 import OneSortHomArityGen.Term
 import OneSortHomArityGen.Typing
 import OneSortHomArityGen.Utility

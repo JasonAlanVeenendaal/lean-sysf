@@ -2,6 +2,8 @@
 import OneSortHomArityGen.Vec
 import LeanSubst
 
+namespace OneSortHomArityGen
+
 open LeanSubst
 
 inductive VariantSort where
@@ -47,13 +49,18 @@ notation "Λ " t => Term.bind Variant.tlam Vec.nil t
 @[app_unexpander Term.ctor]
 meta def unexpand_term_ctor : Lean.PrettyPrinter.Unexpander
 | `($(_) Variant.star v[]) => `(★)
+| `($(_) Variant.app fun $(_) => v[$f, $a] $(_)) => `($f :@ $a)
 | `($(_) Variant.app v[$f, $a]) => `($f :@ $a)
+| `($(_) Variant.tapp fun $(_) => v[$f, $a] $(_)) => `($f :@[$a])
 | `($(_) Variant.tapp v[$f, $a]) => `($f :@[$a])
+| `($(_) Variant.arr fun $(_) => v[$a, $b] $(_)) => `($a -:> $b)
 | `($(_) Variant.arr v[$a, $b]) => `($a -:> $b)
 | _ => throw ()
 
 @[app_unexpander Term.bind]
 meta def unexpand_term_bind : Lean.PrettyPrinter.Unexpander
+| `($(_) Variant.lam (fun i => v[$a] i) $t) => `(:λ[ $a ] $t)
+| `($(_) Variant.lam (fun $(_) => v[$a] $(_)) $t) => `(:λ[ $a ] $t)
 | `($(_) Variant.lam v[$a] $t) => `(:λ[ $a ] $t)
 | `($(_) Variant.tlam v[] $t) => `(Λ $t)
 | `($(_) Variant.all v[] $t) => `(:∀ $t)
@@ -133,13 +140,13 @@ instance : SubstMapId Term Term where
 
 theorem apply_stable (r : Ren) (σ : Subst Term)
   : r.to = σ -> Ren.apply (T := Term) r = Subst.apply σ
-:= by solve_stable Term, r, σ
+:= by subst_solve_stable Term, r, σ
 
-instance : SubstMapStable Term Term where
+instance : SubstMapStable Term where
   apply_stable := apply_stable
 
 theorem apply_compose {s : Term} {σ τ : Subst Term} : s[σ][τ] = s[σ ∘ τ] := by
-  solve_compose Term, s, σ, τ
+  subst_solve_compose Term, s, σ, τ
 
 instance SubstMapCompose_Term : SubstMapCompose Term Term where
   apply_compose := apply_compose
@@ -153,3 +160,20 @@ theorem Term.ren_eq_star {r : Ren} : t[r] = ★ -> t = ★ := by
   case _ v ts ih =>
   cases h; case _ h1 h2 =>
   subst h1; simp at *; apply h2
+
+theorem Term.succ_not_star_implies_not_star : A[+1] ≠ ★ -> A ≠ ★ := by
+  intro h1 h2; subst h2; simp at h1
+
+@[simp]
+def Term.not_lam : Term -> Bool
+| bind .lam _ _ => false
+| bind .tlam _ _ => false
+| _ => true
+
+@[simp]
+def Term.is_xlam : Term -> Bool
+| bind .lam _ _ => true
+| bind .tlam _ _ => true
+| _ => false
+
+end OneSortHomArityGen

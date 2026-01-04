@@ -1,5 +1,8 @@
 
 import LeanSubst
+
+namespace OneSortHomArityGen
+
 open LeanSubst
 
 def Fin.cases1
@@ -230,3 +233,5 @@ theorem Vec.subst_cons {t : Vec S n} {σ : Subst T}
 -- theorem Vec.subst_size2 {t1 t2 : T} :
 --   (v[t1, t2] i)[σ] = (t1[σ]::t2[σ]::mk0) i
 -- := by sorry
+
+end OneSortHomArityGen

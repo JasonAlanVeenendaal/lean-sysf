@@ -1,4 +1,6 @@
 
+namespace OneSortHomArityGen
+
 @[simp]
 def iterate (f : T -> T) : Nat -> T -> T
 | 0 => λ x => x
@@ -10,3 +12,5 @@ notation f "^[" n "]" => iterate f n
 theorem iterate_succ {x : Nat} : ((· + 1)^[n]) x = x + n := by
   induction n <;> simp at *
   case succ n ih => rw [ih]; omega
+
+end OneSortHomArityGen

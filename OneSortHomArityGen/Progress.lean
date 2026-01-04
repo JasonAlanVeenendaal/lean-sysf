@@ -4,6 +4,8 @@ import OneSortHomArityGen.Kinding
 import OneSortHomArityGen.Typing
 import OneSortHomArityGen.Reduction
 
+namespace OneSortHomArityGen
+
 open LeanSubst
 
 @[simp]
@@ -250,3 +252,5 @@ theorem progress t : Value t ∨ (∃ t', t ~> t') := by
         apply Or.inr
         exists (:∀ t')
         apply Red.bind2 _ r
+
+end OneSortHomArityGen

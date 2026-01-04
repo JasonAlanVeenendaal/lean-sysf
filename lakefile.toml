@@ -12,6 +12,9 @@ rev = "main"
 name = "OneSortHomArityGen"
 
 [[lean_lib]]
+name = "TwoSortHet"
+
+[[lean_lib]]
 name = "LeanSysF"
 
 [[lean_exe]]

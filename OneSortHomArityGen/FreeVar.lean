@@ -3,6 +3,8 @@ import LeanSubst
 import OneSortHomArityGen.Utility
 import OneSortHomArityGen.Term
 
+namespace OneSortHomArityGen
+
 open LeanSubst
 
 inductive FV : Term -> Nat -> Prop
@@ -104,3 +106,5 @@ theorem FV.zero_not_in_succ {t : Term} : ¬ (0 ∈ t[+1]) := by
   intro j
   have lem := @var_not_in_one_more 0 t; simp at lem
   apply lem j
+
+end OneSortHomArityGen
