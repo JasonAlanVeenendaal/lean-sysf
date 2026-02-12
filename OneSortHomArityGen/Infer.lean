@@ -77,8 +77,9 @@ def Term.is_arr : Term -> Option (Term × Term)
 | ctor .arr ts => (ts 0, ts 1)
 | _ => none
 
+@[simp]
 def Term.pred (ℓ : Nat) : Term -> Option Term
-| var x => if x > ℓ then var (x - 1) else none
+| var x => if x > ℓ then var (x - 1) else (if x < ℓ then var x else none)
 | ctor .star ts => ctor .star ts
 | ctor .arr ts => do
   let A <- Term.pred ℓ (ts 0)
@@ -87,11 +88,11 @@ def Term.pred (ℓ : Nat) : Term -> Option Term
 | ctor .app ts => do
   let A <- Term.pred ℓ (ts 0)
   let B <- Term.pred ℓ (ts 1)
-  ctor .arr v[A, B]
+  ctor .app v[A, B]
 | ctor .tapp ts => do
   let A <- Term.pred ℓ (ts 0)
   let B <- Term.pred ℓ (ts 1)
-  ctor .arr v[A, B]
+  ctor .tapp v[A, B]
 | bind .all ts t => do
   let P <- Term.pred (ℓ + 1) t
   bind .all ts P
@@ -101,7 +102,10 @@ def Term.pred (ℓ : Nat) : Term -> Option Term
   bind .lam v[A] b
 | bind .tlam ts t => do
   let b <- Term.pred (ℓ + 1) t
-  bind .all ts b
+  bind .tlam ts b
+
+#eval Term.pred 0 (:λ[#1] #0)
+#eval Term.pred 5 (#8 :@ #4)
 
 def infer (Γ : Ctx Term) : Term -> Option Term
 | .var x =>
@@ -133,14 +137,143 @@ def infer (Γ : Ctx Term) : Term -> Option Term
   :∀ P
 | _ => none
 
+#eval Term.pred 0 #0
+#eval (#0)[(Subst.lift^[5 + 1]) +1]
+
+theorem Term.pred_sound_lemma_lemma : x ≥ ℓ -> iterate (Subst.lift (T:=Term)) ℓ +1 x = +1 x := by
+  intro h
+  induction ℓ generalizing x
+  case _ => rfl
+  case _  n ih =>
+    cases x
+    case _ =>
+      cases h
+    case _ m =>
+      simp [Subst.compose]; rw [ih]
+      case _ => simp
+      case _ => omega
+
+  theorem Term.pred_zero_element_unchanged : ℓ > 0 -> iterate (Subst.lift (T:=Term)) ℓ +1 0 = #0 := by
+    intro h
+    induction ℓ
+    case _ => simp; omega
+    case _ n ih => simp
+
+
+  theorem Term.pred_one_iteration : ℓ > x -> iterate (Subst.lift (T:=Term)) ℓ +1 x = +0 x := by
+  intro h
+  induction ℓ generalizing x
+  case _ =>
+    cases x
+    case _ => simp; omega
+    case _ x => omega
+  case _ ℓ ih =>
+    simp [Subst.compose]
+    cases x
+    case _ => simp
+    case _ n =>
+      simp
+      rw [ih]
+      case _ => simp
+      case _ => omega
+
+
 -- TODO: too lazy to prove this right now
 -- How to do it: generalize to ℓ and an iterated lift of +1 by ℓ (similar to free vars stuff)
 -- That gives you a strong enough inductive hypothesis to prove this for all ℓ
 -- then the 0 case is an easy corollary
 --
 -- Might be bugs in Term.pred itself, but clearly it is a definable function
+-- Fixed!
+
+theorem Term.pred_sound_lemma : Term.pred i t = some p -> t = p[iterate Subst.lift i +1] := by
+  intro h;
+  fun_induction Term.pred i t generalizing p;
+  case _ ℓ x h2 =>
+    injection h with e; subst e; simp;
+    cases x
+    case _ =>
+      cases h2
+    case _ x =>
+      simp; rw [pred_sound_lemma_lemma]
+      case _ => simp
+      case _ => omega
+  case _ ℓ x h1 h2 =>
+    injection h with e; subst e; simp;
+    cases x
+    case _ =>
+      rw [Term.pred_zero_element_unchanged]; omega
+    case _ x =>
+      rw [Term.pred_one_iteration]
+      case _ => simp
+      case _ => apply h2
+  case _ ℓ x h1 h2 => contradiction
+  case _ ℓ ts =>
+    injection h with e; rw [<-e]; simp
+  case _ ℓ ts ih1 ih2 =>
+    simp at h
+    have lem := Option.bind_eq_some_iff.1 h
+    rcases lem with ⟨ a,e1,e2 ⟩
+    have lem2 := Option.bind_eq_some_iff.1 e2
+    rcases lem2 with ⟨ b, e3, e4 ⟩
+    injection e4 with np; subst np; simp
+    rw [ih1 e1]
+    rw [ih2 e3]
+    simp
+  case _ ℓ ts ih1 ih2 =>
+    simp at h
+    have lem := Option.bind_eq_some_iff.1 h
+    rcases lem with ⟨ a,e1,e2 ⟩
+    have lem2 := Option.bind_eq_some_iff.1 e2
+    rcases lem2 with ⟨ b, e3, e4 ⟩
+    injection e4 with np; subst np; simp
+    rw [ih1 e1]
+    rw [ih2 e3]
+    simp
+  case _ ℓ ts ih1 ih2 =>
+    simp at h
+    have lem := Option.bind_eq_some_iff.1 h
+    rcases lem with ⟨ a,e1,e2 ⟩
+    have lem2 := Option.bind_eq_some_iff.1 e2
+    rcases lem2 with ⟨ b, e3, e4 ⟩
+    injection e4 with np; subst np; simp
+    rw [ih1 e1]
+    rw [ih2 e3]
+    simp
+  case _ ℓ ts t ih =>
+    simp at h
+    have lem := Option.bind_eq_some_iff.1 h
+    rcases lem with ⟨ a,e1,e2 ⟩
+    injection e2 with np
+    subst np
+    simp
+    simp at ih
+    rw [ih e1]
+  case _ ℓ ts t ih1 ih2 =>
+    simp at h
+    have lem := Option.bind_eq_some_iff.1 h
+    rcases lem with ⟨ a,e1,e2 ⟩
+    have lem2 := Option.bind_eq_some_iff.1 e2
+    rcases lem2 with ⟨ b, e3, e4 ⟩
+    injection e4 with np
+    subst np
+    simp
+    rw [ih1 e1]
+    simp at ih2
+    rw [ih2 e3]
+    simp
+  case _ ℓ ts t ih =>
+    simp at h
+    have lem := Option.bind_eq_some_iff.1 h
+    rcases lem with ⟨ a,e1,e2 ⟩
+    injection e2 with np
+    subst np
+    simp
+    simp at ih
+    rw [ih e1]
+
 theorem Term.pred_sound : Term.pred 0 t = some p -> t = p[+1] := by
-  sorry
+  intro h; apply Term.pred_sound_lemma h
 
 theorem Term.is_all_some : Term.is_all t = some P -> t = :∀ P := by
   intro h
