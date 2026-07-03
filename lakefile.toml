@@ -6,7 +6,7 @@ defaultTargets = ["lean-sysf"]
 name = "lean-subst"
 scope = "amarmaduke"
 git = "https://github.com/amarmaduke/lean-subst"
-rev = "main"
+rev = "705cab3ccd836e96b6051ec4d69f63f25eecac70"
 
 [[lean_lib]]
 name = "OneSortHomArityGen"
