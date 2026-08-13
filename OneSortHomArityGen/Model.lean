@@ -22,7 +22,7 @@ def Model.int_term [Model D] (v : Nat -> D) : Term -> D
 
 @[simp]
 def Model.int_subst [Model D] (v : Nat -> D) (σ : Subst Term) : Nat -> D
-| i => Model.int_term v (σ i)
+| i => Model.int_term v (σ.act i)
 
 notation "⟦ " t " ⟧ " v:100 => Model.int_term v t
 notation "⟦ " σ " ⟧ " v:100 => Model.int_subst v σ

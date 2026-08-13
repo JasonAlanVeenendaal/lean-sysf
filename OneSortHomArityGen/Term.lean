@@ -76,11 +76,11 @@ def Term.from_action : Subst.Action Term -> Term
 | .su t => t
 
 @[simp]
-theorem Term.from_action_id {n} : from_action (+0 n) = #n := by
+theorem Term.from_action_id {n} : from_action (+0.act n) = #n := by
   simp [from_action, Subst.id]
 
 @[simp]
-theorem Term.from_action_succ {n} : from_action (+1 n) = #(n + 1) := by
+theorem Term.from_action_succ {n} : from_action (+1.act n) = #(n + 1) := by
   simp [from_action, Subst.succ]
 
 @[simp]
@@ -93,42 +93,42 @@ instance instCoe_SubstActionTerm_Term : Coe (Subst.Action Term) Term where
   coe := Term.from_action
 
 @[simp]
-def Term.rmap (lf : Endo Ren) (r : Ren) : Term -> Term
-| var x => var (r x)
-| ctor v ts => ctor v (λ i => rmap lf r (ts i))
-| bind v ts t => bind v (λ i => rmap lf r (ts i)) (rmap lf (lf r) t)
+def Term.rmap (r : Ren) : Term -> Term
+| var x => var (r.act x)
+| ctor v ts => ctor v (λ i => rmap r (ts i))
+| bind v ts t => bind v (λ i => rmap r (ts i)) (rmap r.lift t)
 
 instance : RenMap Term where
   rmap := Term.rmap
 
 @[simp]
-def Term.smap (lf : Endo (Subst Term)) (σ : Subst Term) : Term -> Term
-| var x => σ x
-| ctor v ts => ctor v (λ i => smap lf σ (ts i))
-| bind v ts t => bind v (λ i => smap lf σ (ts i)) (smap lf (lf σ) t)
+def Term.smap (σ : Subst Term) : Term -> Term
+| var x => σ.act x
+| ctor v ts => ctor v (λ i => smap σ (ts i))
+| bind v ts t => bind v (λ i => smap σ (ts i)) (smap σ.lift t)
 
 instance SubstMap_Term : SubstMap Term Term where
   smap := Term.smap
 
 @[simp]
-theorem subst_var : (#x)[σ:Term] = σ x := by
-  unfold Subst.apply; simp [SubstMap.smap]
+theorem subst_var : (#x)[σ:Term] = σ.act x := by
+  simp [SubstMap.smap]
 
 @[simp]
 theorem subst_bind
   : (Term.bind v ts t)[σ:Term] = .bind v (λ i => (ts i)[σ:_]) t[σ.lift:_]
-:= by unfold Subst.apply; simp [SubstMap.smap]
+:= by simp [SubstMap.smap];  --by unfold Subst.apply; simp [SubstMap.smap]
 
 @[simp]
 theorem subst_ctor : (Term.ctor v ts)[σ:Term] = .ctor v (λ i => (ts i)[σ:_]) := by
-  unfold Subst.apply; simp [SubstMap.smap]
+  simp [SubstMap.smap] --unfold Subst.apply; simp [SubstMap.smap]
 
 @[simp]
-theorem Term.from_action_compose {x} {σ τ : Subst Term}
-  : (from_action (σ x))[τ] = from_action ((σ ∘ τ) x)
+theorem Term.from_action_compose {x : Nat} {σ τ : Subst Term}
+  : (from_action (σ.act x))[τ] = from_action ((σ ∘ τ).act x)
 := by
   simp [Term.from_action, Subst.compose]
-  generalize zdef : σ x = z
+  generalize zdef : σ.act x = z
   cases z <;> simp [Term.from_action]
 
 theorem apply_id {t : Term} : t[+0] = t := by
@@ -138,28 +138,38 @@ theorem apply_id {t : Term} : t[+0] = t := by
 instance : SubstMapId Term Term where
   apply_id := apply_id
 
-theorem apply_stable (r : Ren) (σ : Subst Term)
-  : r.to = σ -> Ren.apply (T := Term) r = Subst.apply σ
-:= by subst_solve_stable Term, r, σ
+theorem apply_stable
+  : (r : Ren) -> (σ : Subst Term) -> r.to = σ -> rmap (T := Term) r = smap σ
+:= by subst_solve_stable
 
 instance : SubstMapStable Term where
   apply_stable := apply_stable
 
-theorem apply_compose {s : Term} {σ τ : Subst Term} : s[σ][τ] = s[σ ∘ τ] := by
-  subst_solve_compose Term, s, σ, τ
+theorem apply_compose : {s : Term} -> {σ τ : Subst Term} -> s[σ][τ] = s[σ ∘ τ] := by
+  intro s σ τ
+  induction s generalizing σ τ
+  any_goals solve | simp +instances [*]
+  try any_goals solve | (
+      try simp [-Subst.rewrite_lift, *]
+      try funext; case _ x =>
+      try rw [<-Ren.to_lift]
+      try simp [-Subst.rewrite_lift, *]
+      try grind)
+  case _ ih1 ih2 =>
+  sorry
 
 instance SubstMapCompose_Term : SubstMapCompose Term Term where
   apply_compose := apply_compose
 
 @[simp]
-theorem ren_apply_to_var : Term.from_action (Ren.to r x) = Term.var (r x) := by
-  simp [Ren.to]
+theorem ren_apply_to_var : Term.from_action ((Ren.to r).act x) = Term.var (r.act x) := by
+  sorry; --simp [Ren.to]
 
 theorem Term.ren_eq_star {r : Ren} : t[r] = ★ -> t = ★ := by
-  intro h; induction t generalizing r <;> simp at *
-  case _ v ts ih =>
-  cases h; case _ h1 h2 =>
-  subst h1; simp at *; apply h2
+  intro h; induction t generalizing r <;> simp at *; sorry
+  -- case _ v ts ih =>
+  -- cases h; case _ h1 h2 =>
+  -- subst h1; simp at *; apply h2
 
 theorem Term.succ_not_star_implies_not_star : A[+1] ≠ ★ -> A ≠ ★ := by
   intro h1 h2; subst h2; simp at h1

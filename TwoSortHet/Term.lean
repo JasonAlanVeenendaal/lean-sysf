@@ -345,4 +345,6 @@ instance : SubstMapRenComposeRight Term Term where
 instance : SubstMapCompose Term Term where
   apply_compose := by subst_solve_compose
 
+theorem Term.smap_promote : Term.smap σ t = t[σ] := rfl
+
 end TwoSortHet
