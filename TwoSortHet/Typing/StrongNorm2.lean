@@ -13,8 +13,18 @@ namespace TwoSortHet
 def SnModelSet := Term -> Prop
 def SnRedModelSet := Term -> Term -> Prop
 
-def ℛ (S : SnModelSet) : SnModelSet
+
+@[coe]
+def HetRen.to : HetRen Ty -> Subst Ty
+| r  => .mk λ n => re (r.act n)
+
+--need to change this
+def ℛ' (S : SnModelSet) : SnModelSet
 | t => ∀ {r: Ren}, S t[r]
+
+--attempt
+def ℛ (S : SnModelSet) : SnModelSet
+| t => ∀ {r : Ren} {s : HetRen Ty}, S (Term.Ty.smap (HetRen.to s) t)[r]
 
 mutual
   inductive SnNor : SnModelSet -> SnModelSet
@@ -73,6 +83,160 @@ mutual
     SnRed S2 (f •[a]) (f' •[a])
 end
 
+--HetRen has missing theorems. I'm just going to put them here for now
+
+@[simp]
+theorem id_lift : (re 0 :: HetRen.to (HetRen.id Ty) ∘ +1) = (HetRen.to (HetRen.id Ty)) :=
+by
+  unfold HetRen.id
+  unfold HetRen.to
+  unfold Subst.cons
+  simp_all
+  unfold Subst.compose
+  simp_all
+  funext n
+  cases n
+  case _ =>
+    simp
+  case _ =>
+    simp
+
+@[simp]
+theorem HetRenIdTy {b : Ty} : b[HetRen.to (HetRen.id Ty)] = b :=
+by
+  induction b
+  case _ n =>
+    simp
+    unfold HetRen.id
+    unfold HetRen.to
+    simp
+  case _ ih =>
+    simp
+    apply ih
+  case _ A B ih1 ih2 =>
+    simp
+    unfold HetRen.id at *
+    simp at ih1
+    rw [ih1]
+    simp at ih2
+    rw [ih2]
+    simp
+
+@[simp]
+theorem HetRenId {b : Term} : Term.Ty.smap (HetRen.to (HetRen.id Ty)) b = b :=
+by
+  induction b
+  case _ =>
+    simp
+  case _ ih1 ih2 =>
+    simp
+    rw [ih1, ih2]
+    simp
+  case _ ih =>
+    simp
+    apply ih
+  case _ ih =>
+    simp
+    apply ih
+  case _ ih =>
+    simp
+    apply ih
+
+theorem ren_compose : (re 0 :: (Ren.to r) ∘ +1) = @Ren.to Term (Ren.lift r) :=
+by
+  unfold Ren.to
+  unfold Ren.lift
+  unfold Subst.cons
+  unfold Subst.compose
+  simp
+  funext n
+  cases n
+  case _ =>
+    simp
+  case _ =>
+    simp
+
+theorem HetRenCompose : (re 0 :: (HetRen.to r) ∘ +1) = HetRen.to (HetRen.lift r) :=
+by
+  unfold HetRen.to
+  unfold HetRen.lift
+  unfold Subst.cons
+  unfold Subst.compose
+  simp
+  funext n
+  cases n
+  case _ =>
+    simp
+  case _ =>
+    simp
+
+@[simp]
+theorem RenHetRenCommute : (Term.Ty.smap (HetRen.to s) t)[(Ren.to r):Term] = (Term.Ty.smap (HetRen.to s) t[Ren.to r]) :=
+by
+  induction t generalizing r s
+  case _ =>
+    simp
+    unfold Ren.to
+    simp
+  case _ ih1 ih2 =>
+    simp
+    rw [ih1, ih2]
+    simp
+  case _ ih =>
+    simp
+    rw [ren_compose]
+    apply ih
+  case _ ih =>
+    simp
+    apply ih
+  case _ ih =>
+    simp
+    rw [HetRenCompose]
+    apply ih
+
+@[simp]
+theorem TySubstRenCommute : (Term.Ty.smap s t)[(Ren.to r):Term] = (Term.Ty.smap s t[Ren.to r]) :=
+by
+  induction t generalizing r s
+  case _ =>
+    simp
+    unfold Ren.to
+    simp
+  case _ ih1 ih2 =>
+    simp
+    rw [ih1, ih2]
+    simp
+  case _ ih =>
+    simp
+    rw [ren_compose]
+    apply ih
+  case _ ih =>
+    simp_all
+  case _ ih =>
+    simp
+    apply ih
+
+theorem RenLiftComposeCommute : (@Ren.to Term r) ∘ (Ren.to r') = Ren.to (r ∘ r') :=
+by
+  unfold Ren.to
+  simp
+  unfold Subst.compose
+  simp
+
+theorem RenLiftToCommute : (@Ren.to Term r).lift = Ren.to (r.lift) :=
+by
+  unfold Ren.lift
+  unfold Subst.lift
+  simp
+  unfold Ren.to
+  simp
+  funext n
+  cases n
+  case _ =>
+    simp
+  case _ =>
+    simp
+
 @[simp]
 instance : Model SnModelSet where
 A A B := fun
@@ -96,25 +260,66 @@ def 𝒞 (Γ : List Ty) (ξ : Nat -> SnModelSet) (σ : Subst Term) : Prop :=
 -- structure 𝒞' (Γ : List Ty) (ξ : Nat -> SnModelSet) (σ : Subst Term) where
 --  act : ∀ {i : Nat}, Γ[i]? = some A -> ℰ A ξ (σ.act i)
 
+--a type substitution is needed here. since we don't have a kinding environment I think we can get away with just adding a τ
 @[simp]
-def SemanticTyping (Γ : List Ty) (t : Term) (A : Ty) :=
-∀ σ ξ, 𝒞 Γ ξ σ -> ℰ A ξ t[σ]
+def SemanticTyping (Δ : List Kind) (Γ : List Ty) (t : Term) (A : Ty) :=
+∀ Δ' σ ξ (τ : Subst Ty), KindingSubst τ Δ Δ' -> 𝒞 Γ ξ σ -> ℰ A ξ t[τ:Ty][σ]
 
-local notation:170 Γ:170 " ⊨ " t:170 " : " A:170 => SemanticTyping Γ t A
+local notation:170 Δ:170 "&" Γ:170 " ⊨ " t:170 " : " A:170 => SemanticTyping Δ Γ t A
 
 namespace SnNor
   theorem sound : SnNor A t -> SN Red t := by sorry
 
   theorem var x : SnNor A #x := SnNor.neu SnNeu.var
 
+  theorem lift_to_commute {r : Ren} : Subst.lift (Ren.to r) = @Ren.to Term r.lift :=
+  by
+    unfold Subst.lift
+    unfold Ren.to
+    simp
+    funext n
+    cases n
+    case _ =>
+      simp
+      unfold Ren.lift
+      simp
+    case _ =>
+      simp
+      unfold Ren.lift
+      simp
+
   mutual
     theorem SnNor.rename (r : Ren) : SnNor A t -> SnNor A t[r]
-    | .lam (S2 := S2) h1 h2 =>
+    | .lam (S2 := S2) (t := t) h1 h2 =>
       let j := SnNor.rename r.lift h2
-      SnNor.lam (S2 := S2) (by simp [ℛ] at *; rw [Term.smap_promote]; intro r'; simp; replace h1 := @h1 (r ∘ r'); simp at h1; apply h1) (by rw [Term.smap_promote]; rw [<-Ren.to_lift]; apply j)
-    | .tlam (S2 := S2) h1 h2 =>
+      --let lem := HetRenIdCommute
+      SnNor.lam (S2 := S2)
+      (by simp [ℛ] at *;
+          rw [Term.smap_promote];
+          intro r' s;
+          replace h1 := @h1 (r ∘ r') s;
+          rw [ren_compose] at h1;
+          rw [ren_compose];
+          have lem := @RenHetRenCommute (r := (r ∘ r').lift) (s := s) (t := t);
+          rw [lem] at h1; rw [RenHetRenCommute]; rw [<-Subst.rewrite_lift]; simp at h1; rw [lift_to_commute]; simp; apply h1)
+      (by rw [Term.smap_promote]; rw [<-Ren.to_lift]; apply j)
+    | .tlam (S2 := S2) (t := t) h1 h2 =>
       let j := SnNor.rename r h2
-      SnNor.tlam (S2 := S2) (by simp; simp [ℛ] at *; rw [Term.smap_promote]; intro r'; simp; replace h1 := @h1 (r ∘ r'); apply h1) (by rw [Term.smap_promote]; apply j)
+      SnNor.tlam (S2 := S2)
+      (by simp; simp [ℛ] at *;
+          rw [Term.smap_promote];
+          intro r' s; simp;
+          replace h1 := @h1 (r ∘ r') s; simp at h1;
+          have lem := @TySubstRenCommute (r := (r ∘ r')) (s := (re 0 :: (HetRen.to s) ∘ +1)) (t := t);
+          rw [RenLiftComposeCommute] at h1
+          simp at lem
+          rw [<-RenLiftComposeCommute] at h1
+          rw [<-lem] at h1
+          rw [RenLiftComposeCommute] at h1
+          rw [TySubstRenCommute] at h1
+          rw [<-RenLiftComposeCommute] at h1
+          apply h1)
+      (by rw [Term.smap_promote]; apply j)
     | .neu h1 => SnNor.neu (SnNeu.rename r h1)
     | .red h1 h2 =>
       let h2' := SnNor.rename r h2
@@ -192,7 +397,7 @@ namespace 𝒞
       intro A j
       replace h := h n A j
       let lem := ℰ.weaken (A := A) (B := S) (ξ := ξ)
-      simp [𝒞] at h
+      simp [ℰ] at lem
       let lem1 := @ℰ.weaken
       have yourmom : SnNor (⟦A⟧ ξ) = ℰ A ξ := by simp
 
@@ -213,8 +418,6 @@ namespace 𝒞
 end 𝒞
 
 namespace ℰ
-
-
   theorem app :
     S = 𝒱 (A -:> B) ξ ->
     SnNor S f ->
@@ -224,7 +427,7 @@ namespace ℰ
     by
       simp [ℰ] at *;
       subst eq;
-      simp [ℛ] at j1; replace j1 := @j1 .id; simp [Model.A] at j1; replace j1 := j1 a h2;
+      simp [ℛ] at j1; replace j1 := @j1 .id; simp [Model.A] at j1; replace j1 := @j1 (HetRen.id Ty) a h2; simp at j1
       apply SnNor.red; apply SnRed.beta; apply h2; apply j1; apply S2
   | eq, SnNor.neu j1, h2 => SnNor.neu (SnNeu.app j1 h2)
   | eq, SnNor.red (t' := f') j1 j2, h2 =>
@@ -236,16 +439,16 @@ namespace ℰ
       subst eq;
       simp [ℛ] at j1
       replace j1 := @j1 .id
-      simp [Model.A] at j1
+      simp [Model.A] at j1; replace j1 := @j1 (HetRen.id Ty); simp at j1
 
   theorem tapp :
     S = 𝒱 (∀[K] P) ξ ->
     SnNor S f ->
-    ℰ (P[su a::+0]) ξ (f •[a])
-  | eq, SnNor.lam j1 j2 => by subst eq; simp [ℛ] at j1; replace j1 := @j1 .id; simp [Model.Q] at j1
+    ℰ (P[su a::+0]) ξ (f •[b])
+  | eq, SnNor.lam j1 j2 => by subst eq; simp [ℛ] at j1; replace j1 := @j1 .id; simp [Model.Q] at j1; replace j1 := @j1 (HetRen.id Ty); simp at j1
   | eq, SnNor.neu j1 => SnNor.neu (SnNeu.tapp (P := P) j1 rfl)
   | eq, SnNor.red j1 j2 =>
-    let lem1 := SnRed.tapp (S2 := ⟦∀[K]P⟧ ξ) (P := P) (a := a) j1 rfl
+    let lem1 := SnRed.tapp (S2 := ⟦∀[K]P⟧ ξ) (P := P) (a := b) j1 rfl
     let lem2 := tapp (a := a) eq j2
     SnNor.red lem1 lem2
   | eq, SnNor.tlam (S2 := S2) j1 j2 =>
@@ -257,12 +460,14 @@ namespace ℰ
       simp [Model.Q] at j1
       apply SnNor.red
       apply SnRed.tbeta
-      apply rfl
+      rfl
       apply a
       let lem := @beta a P ξ
       simp at lem
       rw [lem]
-      replace j1 := j1 (⟦a⟧ ξ)
+      replace j1 := @j1 (HetRen.id Ty) (⟦a⟧ ξ) b
+      rw [id_lift] at j1
+      simp at j1
       apply j1
       apply S2
 
@@ -278,6 +483,61 @@ namespace ℰ
   | Term.lam A b => Term.lam A (insert (s + 1) (n + 1) b)
   | Term.tapp f a => Term.tapp (insert s n f) a
   | Term.tlam K a => Term.tlam K (insert s n a)
+
+  def ty_ty_insert : Nat -> Nat -> Ty -> Ty := λ s n T =>
+  match T with
+  | Ty.var m => if m = n then t#s else Ty.var m
+  | Ty.arrow A B => Ty.arrow (ty_ty_insert s n A) (ty_ty_insert s n B)
+  | Ty.all K A => Ty.all K (ty_ty_insert (s + 1) (n + 1) A)
+
+  --inserts type variable t#s at position n in term t
+  def ty_insert : Nat -> Nat -> Term -> Term := λ s n t =>
+  match t with
+  | Term.var m => Term.var m
+  | Term.app f a => Term.app (ty_insert s n f) (ty_insert s n a)
+  | Term.lam A b => Term.lam A (ty_insert s n b)
+  | Term.tapp f a => Term.tapp (ty_insert s n f) (ty_ty_insert s n a)
+  | Term.tlam K a => Term.tlam K (ty_insert (s + 1) (n + 1) a)
+
+  @[simp]
+  theorem ty_ty_insert_id : ty_ty_insert k k T = T :=
+  by
+    induction T generalizing k
+    case _ n =>
+      unfold ty_ty_insert
+      split; simp_all; simp
+    case _ ih =>
+      unfold ty_ty_insert
+      simp
+      apply ih
+    case _ ih1 ih2 =>
+      unfold ty_ty_insert
+      simp
+      rw [ih1, ih2]
+      simp
+
+  theorem ty_insert_id : ty_insert k k t = t :=
+  by
+    induction t generalizing k
+    case _ n =>
+      unfold ty_insert
+      simp
+    case _ ih1 ih2 =>
+      unfold ty_insert
+      simp
+      rw [ih1, ih2]; simp
+    case _ ih =>
+      unfold ty_insert
+      simp
+      apply ih
+    case _ ih =>
+      unfold ty_insert
+      simp
+      apply ih
+    case _ ih =>
+      unfold ty_insert
+      simp
+      apply ih
 
   theorem insert_id : insert k k t = t :=
   by
@@ -310,6 +570,11 @@ namespace ℰ
     funext b
     simp [Term.smap_promote]
     apply insert_id
+
+  theorem ty_insert_id_smap : ty_insert k k = Term.Ty.smap +0 := by
+    funext b
+    simp [Term.Ty.smap_promote]
+    apply ty_insert_id
 
   theorem ty_smap_id : ((su #0 :: +1).lift k ◾ (@Subst.succ Ty)) = (su #0 :: +1).lift k :=
   by
@@ -403,8 +668,7 @@ namespace ℰ
           simp_all
     case _ ih1 ih2 =>
       unfold insert
-      simp
-      apply And.intro; apply ih1; apply ih2
+      simp_all
     case _ ih =>
       simp
       unfold insert
@@ -423,6 +687,79 @@ namespace ℰ
       rw [ty_smap_id]
       apply ih
 
+  theorem lift_k_ty_ty_insert_eq : ty_ty_insert k k = Ty.smap ((su t#0 :: +1).lift k) :=
+  by
+    funext T
+    induction T generalizing k
+    case _ n =>
+      unfold ty_ty_insert
+      split
+      case _ h =>
+        subst h
+        unfold Ty.smap
+        unfold Subst.lift
+        simp
+        unfold Ren.add
+        simp
+      case _ h =>
+        simp
+        unfold Ty.from_action
+        unfold Subst.lift
+        simp
+        split
+        case _ heq =>
+          split at heq
+          case _ =>
+            simp_all
+          case _ =>
+            simp
+            sorry
+        case _ =>
+          sorry
+    case _ =>
+      sorry
+    case _ =>
+      sorry
+
+  theorem lift_k_ty_insert_eq : ty_insert k k = Term.Ty.smap ((su t#0 :: +1).lift k) :=
+  by
+    funext b
+    induction b generalizing k
+    case _ =>
+      unfold ty_insert
+      simp
+    case _ ih1 ih2 =>
+      unfold ty_insert
+      simp
+      rw [ih1, ih2]
+      simp
+    case _ T t ih =>
+      unfold ty_insert
+      simp
+      rw [ih]
+      simp
+      have lem := @lift_k_ty_ty_insert_eq k
+      simp at lem
+      rw [<-Ty.smap_promote]
+      rw [<-lem]
+      symm
+      apply ty_ty_insert_id
+    case _ ih =>
+      unfold ty_insert
+      simp
+      rw [ih]
+      simp
+      symm
+      rw [<-Ty.smap_promote]
+      rw [<-lift_k_ty_ty_insert_eq]
+      apply ty_ty_insert_id
+    case _ ih =>
+      unfold ty_insert
+      simp
+      rw [ih]
+
+      sorry
+
   theorem su_to_id : Term.smap (su #0 :: +1) = Term.smap +0 :=
   by
     let lem1 := @insert_id_smap 0
@@ -430,6 +767,38 @@ namespace ℰ
     simp at lem2
     rw [<-lem2]
     rw [<-lem1]
+
+  theorem ty_su_to_id : Term.Ty.smap (su t#0 :: +1) = Term.Ty.smap +0 :=
+  by
+    sorry
+
+  theorem HetRenUnfold : +1 = HetRen.to (HetRen.add Ty 1) :=
+  by
+    unfold HetRen.add
+    unfold HetRen.to
+    simp
+    unfold Subst.succ
+    simp
+
+  @[simp]
+  theorem id_term_ty : (Term.Ty.smap +0 b) = b :=
+  by
+    induction b
+    case _ =>
+       simp
+    case _ ih1 ih2 =>
+      simp
+      rw [ih1, ih2]
+      simp
+    case _ ih =>
+      simp
+      apply ih
+    case _ ih =>
+      simp
+      apply ih
+    case _ ih =>
+      simp
+      apply ih
 
   --------------------------------------------------------------------------
   -- done
@@ -439,61 +808,93 @@ namespace ℰ
     ℛ (𝒱 (A -:> B) ξ) (λ[C] b) ->
     ℰ (A -:> B) ξ (λ[C] b)
   := by
-      intro h
-      apply SnNor.lam; apply h
-      simp [ℛ] at h; simp [Model.A] at h
-      replace h := @h (Ren.add 1) #0
-      simp at h
-      have lem := @Term.smap_promote (su #0 :: +1) b
-      simp at lem
-      rw [<-lem] at h
-      rw [su_to_id] at h
-      rw [Term.smap_promote] at h
-      simp at h
-      apply h
-      apply SnNor.neu (SnNeu.var)
+    intro h
+    apply SnNor.lam; apply h
+    simp only [ℛ] at h; simp [Model.A] at h
+    replace h := @h (Ren.add 1) (.id Ty) #0
+    simp at h
+    have lem := @Term.smap_promote (su #0 :: +1) b
+    simp at lem
+    rw [<-lem] at h
+    rw [su_to_id] at h
+    rw [Term.smap_promote] at h
+    simp at h
+    apply h
+    apply SnNor.neu (SnNeu.var)
 
   theorem tlam :
     ℛ (𝒱 (∀[K]P) ξ) (Λ[K]b) ->
     ℰ (∀[K]P) ξ (Λ[K]b)
   := by
     intro h
-    simp at *
-    sorry
-
+    apply SnNor.tlam; apply h
+    simp only [ℛ] at h; simp [Model.Q] at h
+    replace h := @h (.id) (HetRen.add Ty 1)
+    simp at h
+    rw [Term.Ty.smap_promote] at h
+    simp at h
+    rw [<-HetRenUnfold] at h
+    replace h := h (ξ 0) t#0
+    rw [<-@Term.Ty.smap_promote] at h
+    rw [ty_su_to_id] at h
+    simp at h
+    apply h
 end ℰ
 
-theorem fundamental {Γ : List Ty} : Δ&Γ ⊢ t : A -> Γ ⊨ t : A
-| .var (x := x) j1 j2, σ, ξ, h => h x A j1
-| .lam (t := t) (A := A) (B := B) j1 j2, σ, ξ, h =>
+theorem fundamental {Γ : List Ty} : Δ&Γ ⊢ t : A -> Δ&Γ ⊨ t : A
+| .var (x := x) j1 j2, Δ', σ, ξ, τ, h1, h2 => let lem := h2 x A j1; sorry -- h x A j1
+| .lam (t := t) (A := A) (B := B) j1 j2, Δ', σ, ξ, τ, h1, h2 =>
   let j2' := fundamental j2
   by
-    apply ℰ.lam; simp [Model.A]; simp [ℛ]; simp at j2'
-    intro r a h2
-    rw [Term.smap_promote]
+    unfold SemanticTyping at j2'
+    unfold ℰ at j2'
+    apply ℰ.lam; rw [Term.smap_promote, Term.Ty.smap_promote]; simp only [ℛ]; intro r s;
+    let t' : Term := (λ[A[τ:_]]Term.Ty.smap τ (Term.smap σ.lift t))
+    have lem := RenHetRenCommute (s := s) (r := r) (t := t')
+    unfold t' at lem
+    unfold smap1
+    rw [Term.Ty.smap_promote]
+    simp
+    intro a h2
     simp
     apply j2'
-    intro i A' h'
-    cases i <;> simp at *; subst h'; exact h2
-    case _ n =>
-    replace h := h _ _ h'
-    replace h := SnNor.SnNor.rename r h
-    simp at h
-    exact h
-| .app j1 j2, σ, ξ, h =>
-  let j1' := fundamental j1 σ ξ h
-  let j2' := fundamental j2 σ ξ h
+    case _ =>
+      sorry
+    case _ =>
+      sorry
+    case _ =>
+      sorry
+    -- intro i A' h'
+    -- cases i <;> simp at *; subst h'; exact h2
+    -- case _ n =>
+    -- replace h := h _ _ h'
+    -- replace h := SnNor.SnNor.rename r h
+    -- simp at h
+    -- exact h
+| .app j1 j2, Δ', σ, ξ, τ, h1, h2 =>
+  let j1' := fundamental j1 Δ' σ ξ τ h1 h2
+  let j2' := fundamental j2 Δ' σ ξ τ h1 h2
   ℰ.app rfl j1' j2'
-| .tlam (K := K) (P := P) j, σ, ξ, h =>
+| .tlam (K := K) (P := P) j, Δ', σ, ξ, τ, h1, h2 =>
   let j' := fundamental j
   by
-    apply ℰ.tlam; simp [Model.Q]; simp [ℛ]; simp at j'
-    intro r A a
+    apply ℰ.tlam; simp [Model.Q]; simp [ℛ]; simp only [SemanticTyping] at j'; simp only [ℰ] at j'
+    intro r s A a
     rw [Term.smap_promote]
+    --replace h := 𝒞.lift (S := A) (A := a) h
     simp
-    replace h := 𝒞.lift (S := A) (A := a) h
-    simp [𝒞] at h
-    sorry
-| .tapp (a := a) (f := f) (K := K) (P := P) j1 j2 e, σ, ξ, h =>
-  let j1' := fundamental j1 σ ξ h
-  by subst e; apply ℰ.tapp rfl j1'
+    rw [Term.Ty.smap_promote]
+    rw [Term.Ty.smap_promote]
+    simp
+    apply j'
+    case _ =>
+      sorry
+    case _ =>
+      apply 𝒞.rename
+      sorry
+    case _ =>
+      sorry
+| .tapp (a := a) (f := f) (K := K) (P := P) j1 j2 e, Δ', σ, ξ, τ, h1, h2 =>
+  let j1' := fundamental j1 Δ' σ ξ τ h1 h2
+  let lem := ℰ.tapp (a := a) (b := a[τ]) rfl j1'
+  by subst e; simp [ℰ] at lem; simp; apply lem

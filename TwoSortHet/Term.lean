@@ -347,4 +347,8 @@ instance : SubstMapCompose Term Term where
 
 theorem Term.smap_promote : Term.smap σ t = t[σ] := rfl
 
+theorem Term.Ty.smap_promote : Term.Ty.smap σ t = t[σ:Ty] := rfl
+
+theorem Ty.smap_promote : Ty.smap σ T = T[σ:Ty] := rfl
+
 end TwoSortHet
