@@ -263,12 +263,25 @@ def 𝒞 (Γ : List Ty) (ξ : Nat -> SnModelSet) (σ : Subst Term) : Prop :=
 --a type substitution is needed here. since we don't have a kinding environment I think we can get away with just adding a τ
 @[simp]
 def SemanticTyping (Δ : List Kind) (Γ : List Ty) (t : Term) (A : Ty) :=
-∀ Δ' σ ξ (τ : Subst Ty), KindingSubst τ Δ Δ' -> 𝒞 Γ ξ σ -> ℰ A ξ t[τ:Ty][σ]
+∀ σ ξ (τ : Subst Ty), 𝒞 Γ ξ σ -> ℰ A ξ t[τ:Ty][σ]
 
 local notation:170 Δ:170 "&" Γ:170 " ⊨ " t:170 " : " A:170 => SemanticTyping Δ Γ t A
 
 namespace SnNor
-  theorem sound : SnNor A t -> SN Red t := by sorry
+  mutual
+    theorem sound : SnNor A t -> SN Red t
+    | .lam (A := T) h1 h2 => sorry
+    | .tlam h1 h2 => sorry
+    | .red h1 h2 => SnRed.sound h1 (sound h2)
+    | .neu h1 => sorry
+
+    theorem SnRed.sound : SnRed A t t' -> SN Red t' -> SN Red t
+    | .beta h1, h2 => sorry
+    | .tbeta h1, h2 => sorry
+    | .app h1, h2 => sorry
+    | .tapp h1 h2, h3 => sorry
+
+  end
 
   theorem var x : SnNor A #x := SnNor.neu SnNeu.var
 
@@ -353,18 +366,6 @@ namespace SnNor
 
   end
 end SnNor
-
--- namespace ℛ
---   @[simp]
---   theorem lam
---     : ℛ (𝒱 (A -:> B) ξ) (λ[C] b) <-> ∀ (r:Ren) a, ℰ A ξ a -> ℰ B ξ b[su a ::r]
---   := ⟨λ h1 r a h2 =>
---       let h1 := @h1 r
---       let h1 := h1 a h2
---       by simp at *; sorry,
---       sorry⟩
-
--- end ℛ
 
 namespace ℰ
   theorem weaken : ℰ (A[+1]) (B::ξ) = ℰ A ξ := by simp [ℰ]; congr 1
@@ -713,13 +714,50 @@ namespace ℰ
             simp_all
           case _ =>
             simp
-            sorry
-        case _ =>
-          sorry
-    case _ =>
-      sorry
-    case _ =>
-      sorry
+            unfold Subst.act at heq
+            split at heq
+            case _  heq2 =>
+              simp at heq
+            case _ heq2 =>
+              simp at heq
+              subst heq
+              generalize zdef : (n - k) = z at heq2
+              cases z
+              case _ =>
+                simp at heq2
+              case _ =>
+                simp at heq2
+                omega
+        case _ heq =>
+          unfold Subst.act at heq
+          generalize zdef : (n - k) = z at heq
+          cases z
+          case _ =>
+            split at heq
+            case _ =>
+              simp at heq
+            case _ =>
+              simp at heq
+              unfold Ren.add at heq
+              simp at heq
+              omega
+          case _ =>
+            split at heq
+            case _ =>
+              simp at heq
+            case _ =>
+              simp at heq
+    case _ ih =>
+      unfold ty_ty_insert
+      simp
+      replace ih := @ih (k + 1)
+      simp [Subst.rewrite_lift_succ] at ih
+      simp at ih
+      apply ih
+    case _ ih1 ih2 =>
+      unfold ty_ty_insert
+      rw [ih1, ih2]
+      simp
 
   theorem lift_k_ty_insert_eq : ty_insert k k = Term.Ty.smap ((su t#0 :: +1).lift k) :=
   by
@@ -754,11 +792,13 @@ namespace ℰ
       rw [<-lift_k_ty_ty_insert_eq]
       apply ty_ty_insert_id
     case _ ih =>
-      unfold ty_insert
       simp
-      rw [ih]
-
-      sorry
+      unfold ty_insert
+      congr
+      replace ih := @ih (k + 1)
+      simp [Subst.rewrite_lift_succ] at ih
+      simp at ih
+      apply ih
 
   theorem su_to_id : Term.smap (su #0 :: +1) = Term.smap +0 :=
   by
@@ -770,7 +810,11 @@ namespace ℰ
 
   theorem ty_su_to_id : Term.Ty.smap (su t#0 :: +1) = Term.Ty.smap +0 :=
   by
-    sorry
+    let lem1 := @ty_insert_id_smap 0
+    let lem2 := @lift_k_ty_insert_eq 0
+    simp at lem2
+    rw [<-lem1]
+    rw [<-lem2]
 
   theorem HetRenUnfold : +1 = HetRen.to (HetRen.add Ty 1) :=
   by
@@ -842,8 +886,8 @@ namespace ℰ
 end ℰ
 
 theorem fundamental {Γ : List Ty} : Δ&Γ ⊢ t : A -> Δ&Γ ⊨ t : A
-| .var (x := x) j1 j2, Δ', σ, ξ, τ, h1, h2 => let lem := h2 x A j1; sorry -- h x A j1
-| .lam (t := t) (A := A) (B := B) j1 j2, Δ', σ, ξ, τ, h1, h2 =>
+| .var (x := x) j1 j2, σ, ξ, τ, h1 => let lem := h1 x A j1; sorry -- h x A j1
+| .lam (t := t) (A := A) (B := B) j1 j2, σ, ξ, τ, h1 =>
   let j2' := fundamental j2
   by
     unfold SemanticTyping at j2'
@@ -854,14 +898,9 @@ theorem fundamental {Γ : List Ty} : Δ&Γ ⊢ t : A -> Δ&Γ ⊨ t : A
     unfold t' at lem
     unfold smap1
     rw [Term.Ty.smap_promote]
-    simp
+    simp [Model.A]
     intro a h2
-    simp
     apply j2'
-    case _ =>
-      sorry
-    case _ =>
-      sorry
     case _ =>
       sorry
     -- intro i A' h'
@@ -871,11 +910,11 @@ theorem fundamental {Γ : List Ty} : Δ&Γ ⊢ t : A -> Δ&Γ ⊨ t : A
     -- replace h := SnNor.SnNor.rename r h
     -- simp at h
     -- exact h
-| .app j1 j2, Δ', σ, ξ, τ, h1, h2 =>
-  let j1' := fundamental j1 Δ' σ ξ τ h1 h2
-  let j2' := fundamental j2 Δ' σ ξ τ h1 h2
+| .app j1 j2, σ, ξ, τ, h1  =>
+  let j1' := fundamental j1 σ ξ τ h1
+  let j2' := fundamental j2 σ ξ τ h1
   ℰ.app rfl j1' j2'
-| .tlam (K := K) (P := P) j, Δ', σ, ξ, τ, h1, h2 =>
+| .tlam (K := K) (P := P) j, σ, ξ, τ, h1 =>
   let j' := fundamental j
   by
     apply ℰ.tlam; simp [Model.Q]; simp [ℛ]; simp only [SemanticTyping] at j'; simp only [ℰ] at j'
@@ -888,13 +927,14 @@ theorem fundamental {Γ : List Ty} : Δ&Γ ⊢ t : A -> Δ&Γ ⊨ t : A
     simp
     apply j'
     case _ =>
-      sorry
-    case _ =>
       apply 𝒞.rename
+
       sorry
-    case _ =>
-      sorry
-| .tapp (a := a) (f := f) (K := K) (P := P) j1 j2 e, Δ', σ, ξ, τ, h1, h2 =>
-  let j1' := fundamental j1 Δ' σ ξ τ h1 h2
+| .tapp (a := a) (f := f) (K := K) (P := P) j1 j2 e, σ, ξ, τ, h1 =>
+  let j1' := fundamental j1 σ ξ τ h1
   let lem := ℰ.tapp (a := a) (b := a[τ]) rfl j1'
   by subst e; simp [ℰ] at lem; simp; apply lem
+
+theorem sn : Δ&Γ ⊢ t : A -> SN Red t := λ h =>
+  let lem : SnNor (⟦ A ⟧ fun n t => True) t := fundamental h +0 (λ n t => True) (τ := +0) (λ n _ _ => SnNor.var n) |> cast (by simp)
+  SnNor.sound lem
