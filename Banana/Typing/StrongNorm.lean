@@ -123,54 +123,54 @@ namespace SnNor
   theorem var x : SnNor A #x := SnNor.neu SnNeu.var
 
   mutual
-    theorem SnNor.rename (r : Ren Term) : SnNor A t -> SnNor A t⟨r,.id Ty⟩
+    theorem SnNor.rename (r : Ren Term) (s : Ren Ty) : SnNor A t -> SnNor A t⟨r,s⟩
     | .lam (S2 := S2) (t := t) h1 h2 =>
-      let j := SnNor.rename r.lift h2
+      let j := SnNor.rename r.lift s h2
       --let lem := HetRenIdCommute
       SnNor.lam (S2 := S2)
       (by simp [ℛ] at *;
-          intro r1 r2
-          replace h1 := @h1 (r >> r1) r2
+          intro r1 s2
+          replace h1 := @h1 (r >> r1) (s >> s2)
           simp at h1
           apply h1)
       j
     | .tlam (S2 := S2) (t := t) h1 h2 =>
-      let j := SnNor.rename r h2
+      let j := SnNor.rename r s.lift h2
       SnNor.tlam (S2 := S2)
       (by simp; simp [ℛ] at *;
-          intro r1 r2
-          replace h1 := @h1 (r >> r1) r2
+          intro r1 s1
+          replace h1 := @h1 (r >> r1) (s >> s1)
           apply h1)
       j
-    | .neu h1 => SnNor.neu (SnNeu.rename r h1)
+    | .neu h1 => SnNor.neu (SnNeu.rename r s h1)
     | .red h1 h2 =>
-      let h2' := SnNor.rename r h2
-      let h1' := SnRed.rename r h1
+      let h2' := SnNor.rename r s h2
+      let h1' := SnRed.rename r s h1
       SnNor.red h1' h2'
 
-    theorem SnNeu.rename (r : Ren Term) : SnNeu A t -> SnNeu A t⟨r, .id Ty⟩
+    theorem SnNeu.rename (r : Ren Term) (s : Ren Ty) : SnNeu A t -> SnNeu A t⟨r, s⟩
     | .var (x := x) => .var
     | .app h1 h2 =>
-      let h1' := SnNeu.rename r h1
-      let h2' := SnNor.rename r h2
+      let h1' := SnNeu.rename r s h1
+      let h2' := SnNor.rename r s h2
       SnNeu.app h1' h2'
     | .tapp h1 =>
-      let h1' := SnNeu.rename r h1
+      let h1' := SnNeu.rename r s h1
       SnNeu.tapp h1'
 
-    theorem SnRed.rename (r : Ren Term) : SnRed A t t' -> SnRed A t⟨r,.id Ty⟩ t'⟨r, .id Ty⟩
+    theorem SnRed.rename (r : Ren Term) (s : Ren Ty) : SnRed A t t' -> SnRed A t⟨r,s⟩ t'⟨r,s⟩
     | .beta (S1 := S1) (S2 := S2) (t := t) (A := A) (b := b) h1 =>
-      let h1' := SnNor.rename r h1
-      let lem := @SnRed.beta S1 t⟨r, .id Ty⟩ S2 A b⟨r.lift, .id Ty⟩
+      let h1' := SnNor.rename r s h1
+      let lem := @SnRed.beta S1 t⟨r, s⟩ S2 A⟨s⟩ b⟨r.lift, s⟩
       by simp at *; simp at lem; apply lem; apply h1'
     | .tbeta (K := K) (b := b) (t := t) (S := S) =>
-      let lem := SnRed.tbeta (b := b⟨r, .id Ty⟩) (K := K) (S := S) (t := t)
+      let lem := SnRed.tbeta (b := b⟨r, s.lift⟩) (K := K) (S := S) (t := t⟨s⟩)
       by simp; simp at lem; apply lem
     | .app h1 =>
-      let h1' := SnRed.rename r h1
+      let h1' := SnRed.rename r s h1
       SnRed.app h1'
     | .tapp h1 =>
-      let h1' := SnRed.rename r h1
+      let h1' := SnRed.rename r s h1
       SnRed.tapp h1'
 
   end
@@ -229,16 +229,8 @@ namespace 𝒞
   theorem rename {r : Ren Term} {s : Ren Ty}: 𝒞 Γ ξ σ -> 𝒞 Γ ξ (σ >> ·[r.to, s.to]) := by
     intro h; simp [𝒞, ℰ] at *; intro i A j
     replace h := h i A j
-    let lem := SnNor.SnNor.rename r h
+    let lem := SnNor.SnNor.rename r s h
     simp at lem
-    sorry
-
-  theorem compose {r: Ren Term} {s : Ren Ty} :
-    𝒞 Γ ξ σ ->
-    𝒞 Γ ξ (σ >> ·[r.to, s.to])
-  := by
-    intro h
-    simp at *
     sorry
 
   theorem lift (s : Ren Ty) :
@@ -449,7 +441,9 @@ namespace ℰ
     replace h := @h (.id Term) (.add Ty 1)
     simp at h
     replace h := h (ξ 0) t#0
-    apply h
+    sorry
+    sorry
+    --apply h
 end ℰ
 
 theorem fundamental {Γ : List Ty} : Δ&Γ ⊢ t : A -> Δ&Γ ⊨ t : A
@@ -465,7 +459,7 @@ theorem fundamental {Γ : List Ty} : Δ&Γ ⊢ t : A -> Δ&Γ ⊨ t : A
     intro a h2
     apply j2'
     apply 𝒞.su h2
-    apply 𝒞.compose h1
+    apply 𝒞.rename h1
 | .app j1 j2, σ, ξ, τ, h1  =>
   let j1' := fundamental j1 σ ξ τ h1
   let j2' := fundamental j2 σ ξ τ h1

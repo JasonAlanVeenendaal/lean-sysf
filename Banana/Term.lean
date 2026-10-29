@@ -42,7 +42,7 @@ inductive Term where
 
 #leansubst var Term.var
 #leansubst bind Term at pos 1 in Term.lam
-#leansubst bind Ty at pos 0 in Term.tlam
+#leansubst bind Ty at pos 1 in Term.tlam
 
 #leansubst generate Term, Ty
 
