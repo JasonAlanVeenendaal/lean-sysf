@@ -75,20 +75,20 @@ theorem TypingRen.shift {Γ Γ' r} k : TypingRen r Γ Γ' -> TypingRen r Γ⟨.a
     simp
   }⟩
 
-def Typing.rename {Δ1 Δ2 : List Kind} {Γ1 Γ2 : List Ty}
-  (m1 : Δ1 -⟨r1⟩> Δ2) (m2 : Γ1 -⟨r2⟩> Γ2)
-  : Δ1&Γ1 ⊢ t : A -> Δ2&Γ2⟨r1⟩ ⊢ t⟨r2, r1⟩ : A⟨r1⟩
-| var (x := x) j1 j2 =>
-  have j1 := congr (f₁ := λ t => t⟨r1⟩) rfl $ m2.act j1
-  var (simp% j1) (j2.rename m1)
-| app j1 j2 => app (j1.rename m1 m2) (j2.rename m1 m2)
-| lam (A := A) j1 j2 => lam (j1.rename m1) (j2.rename m1 $ m2.lift A)
-| tapp j1 j2 e => tapp (j1.rename m1 m2) (j2.rename m1) (by simp [e])
-| tlam (K := K) j =>
-  have lem1 := m1.lift K
-  have lem2 := m2.shift 1
-  have lem3 := j.rename lem1 lem2
-  tlam (by simp; sorry)--lsimp j.rename (m1.lift K) (m2.shift 1))
+-- def Typing.rename {Δ1 Δ2 : List Kind} {Γ1 Γ2 : List Ty}
+--   (m1 : Δ1 -⟨r1⟩> Δ2) (m2 : Γ1 -⟨r2⟩> Γ2)
+--   : Δ1&Γ1 ⊢ t : A -> Δ2&Γ2⟨r1⟩ ⊢ t⟨r2, r1⟩ : A⟨r1⟩
+-- | var (x := x) j1 j2 =>
+--   have j1 := congr (f₁ := λ t => t⟨r1⟩) rfl $ m2.act j1
+--   var (simp% j1) (j2.rename m1)
+-- | app j1 j2 => app (j1.rename m1 m2) (j2.rename m1 m2)
+-- | lam (A := A) j1 j2 => lam (j1.rename m1) (j2.rename m1 $ m2.lift A)
+-- | tapp j1 j2 e => tapp (j1.rename m1 m2) (j2.rename m1) (by simp [e])
+-- | tlam (K := K) j =>
+--   have lem1 := m1.lift K
+--   have lem2 := m2.shift 1
+--   have lem3 := j.rename lem1 lem2
+--   tlam (by simp; sorry)--lsimp j.rename (m1.lift K) (m2.shift 1))
 -- | var h j => var (m.act h) j
 -- | lam j1 j2 => lam j1 $ j2.rename (m.lift _)
 -- | app j1 j2 => app (j1.rename m) (j2.rename m)

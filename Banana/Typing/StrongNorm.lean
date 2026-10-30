@@ -77,10 +77,10 @@ end
 @[simp]
 instance : Model SnModelSet where
 A A B := fun
-  | λ[_] t => ∀ a, SnNor A a -> SnNor B t[su a .: Subst.id Term, .id Ty]
+  | λ[_] t => ∀ (a : Action Term), SnNor A a -> SnNor B t[a .: Subst.id Term, .id Ty]
   | _ => False
 Q P := fun
-  | Λ[_] t => ∀ (A : SnModelSet) (a:Ty), SnNor (P A) t[.id Term, su a.:Subst.id Ty]
+  | Λ[_] t => ∀ (A : SnModelSet) (a:Action Ty), SnNor (P A) t[.id Term, a.:Subst.id Ty]
   | _ => False
 
 @[simp]
@@ -231,7 +231,9 @@ namespace 𝒞
     replace h := h i A j
     let lem := SnNor.SnNor.rename r s h
     simp at lem
-    sorry
+    norm_subst
+    simp
+    exact lem
 
   theorem lift (s : Ren Ty) :
     𝒞 Γ ξ σ ->
@@ -239,6 +241,22 @@ namespace 𝒞
   := by
     intro h; apply re; apply rename h
 
+  theorem test :
+    𝒞 Γ ξ σ ->
+    𝒞 Γ⟨Ren.add Ty 1⟩ (A::ξ) σ
+  := by
+    intro h
+    simp only [𝒞] at *
+    intro i A' h1
+    replace h1 := List.getElem_of_getElem? h1
+    rcases h1 with ⟨r, e⟩
+    rw [<-List.rmap_getElem (by simp at r; exact r)] at e
+    rw [<-e]
+    rw [Subst.stable (σ := ·[Subst.add Ty 1]) (by simp)]
+    --norm_subst at e
+    rw [ℰ.weaken (B := A)]
+    apply h
+    simp
 end 𝒞
 
 namespace ℰ
@@ -252,7 +270,7 @@ namespace ℰ
       simp [ℰ] at *;
       subst eq;
       simp [ℛ] at j1; replace j1 := @j1 (.id Term) (.id Ty); simp [Model.A] at j1;
-      replace j1 := @j1 a h2; --simp at j1
+      replace j1 := @j1 (su a) h2; --simp at j1
       apply SnNor.red; apply SnRed.beta; apply h2; apply j1; apply S2
   | eq, SnNor.neu j1, h2 => SnNor.neu (SnNeu.app j1 h2)
   | eq, SnNor.red (t' := f') j1 j2, h2 =>
@@ -287,128 +305,12 @@ namespace ℰ
       simp [Model.Q] at j1
       apply SnNor.red
       apply SnRed.tbeta
-      --apply a
       let lem := @beta a P ξ
       simp at lem
       rw [lem]
-      replace j1 := @j1 (⟦a⟧ ξ) b
+      replace j1 := @j1 (⟦a⟧ ξ) (su b)
       apply j1
       apply S2
-
-  --------------------------------------------------------------------------
-  --i need this
-  --------------------------------------------------------------------------
-
-  -- inserts variable #s at position n in term t
-  def insert : Nat -> Nat -> Term -> Term := λ s n t =>
-  match t with
-  | Term.var m => if m = n then #s else Term.var m
-  | Term.app f a => Term.app (insert s n f) (insert s n a)
-  | Term.lam A b => Term.lam A (insert (s + 1) (n + 1) b)
-  | Term.tapp f a => Term.tapp (insert s n f) a
-  | Term.tlam K a => Term.tlam K (insert s n a)
-
-
-  theorem insert_id : insert k k t = t :=
-  by
-    induction t generalizing k
-    case _ n =>
-      unfold insert
-      split
-      case _ h =>
-        rw [h]
-      case _ =>
-        rfl
-    case _ ih1 ih2 =>
-      unfold insert
-      simp_all
-    case _ ih =>
-      unfold insert
-      congr
-      replace ih := @ih (k + 1)
-      rw [ih]
-    case _ ih =>
-      unfold insert
-      simp
-      apply ih
-    case _ ih =>
-      unfold insert
-      congr
-      apply ih
-
-  theorem insert_id_smap : insert k k t = t[.id Term, .id Ty] := by
-    simp
-    apply insert_id
-
-  theorem lift_k_insert_eq : insert k k t = t[(su #0 .: (Ren.add Term 1).to).lift [Ty] k, .id Ty] := by
-    induction t generalizing k
-    case _ n =>
-      unfold insert
-      split
-      case _ =>
-        unfold Subst.lift
-        simp_all
-      case _ h =>
-        unfold Subst.lift
-        cases Nat.decLt n k
-        case _ h2 =>
-          simp
-          unfold Term.from_action
-          simp at h2
-          split
-          case _ heq =>
-            simp_all
-            generalize zdef : (n - k) = z
-            rw [zdef] at heq
-            cases z
-            case _ =>
-              simp_all
-            case _ y n' =>
-              simp_all
-              rw [<-heq]
-              have lem : n = n' + (1 + k) := by omega
-              apply lem
-          case _ heq =>
-            unfold Subst.act at heq
-            simp_all
-            generalize zdef: (n - k) = z
-            rw [zdef] at heq
-            cases z
-            case _ t =>
-              simp_all
-              rw [<-heq]
-              congr
-              omega
-            case _ t n' =>
-              simp_all
-        case _ h2 =>
-          simp_all
-    case _ ih1 ih2 =>
-      unfold insert
-      simp_all
-    case _ ih =>
-      unfold insert
-      congr
-      case _ =>
-        simp
-      case _ =>
-        simp
-        replace ih := @ih (k+1)
-        rw [ih]
-        simp
-        sorry
-    case _ ih =>
-      unfold insert
-      simp at *
-      apply ih
-    case _ ih =>
-      unfold insert
-      simp at *
-      apply ih
-
-  --------------------------------------------------------------------------
-  -- done
-  --------------------------------------------------------------------------
 
   theorem lam :
     ℛ (𝒱 (A -:> B) ξ) (λ[C] b) ->
@@ -417,17 +319,8 @@ namespace ℰ
     intro h
     apply SnNor.lam; apply h
     simp only [ℛ] at h; simp [Model.A] at h
-    replace h := @h (Ren.add Term 1) (.id Ty) #0
-    --simp at h
-    --have lem := @Term.smap_promote (su #0 :: +1) b
-    --simp at lem
-    --rw [<-lem] at h
-    let lem1 := @insert_id_smap 0 b
-    let lem2 := @lift_k_insert_eq 0 b
-    rw [lem2] at lem1
-    simp at lem1
+    replace h := @h (Ren.add Term 1) (.id Ty) (re 0)
     simp at h
-    rw [lem1] at h
     apply h
     apply SnNor.neu (SnNeu.var)
 
@@ -440,14 +333,13 @@ namespace ℰ
     simp only [ℛ] at h; simp [Model.Q] at h
     replace h := @h (.id Term) (.add Ty 1)
     simp at h
-    replace h := h (ξ 0) t#0
-    sorry
-    sorry
-    --apply h
+    replace h := h (ξ 0) (re 0)
+    simp at h
+    apply h
 end ℰ
 
 theorem fundamental {Γ : List Ty} : Δ&Γ ⊢ t : A -> Δ&Γ ⊨ t : A
-| .var (x := x) j1 j2, σ, ξ, τ, h1 => let lem := h1 x A j1; sorry -- h x A j1
+| .var (x := x) j1 j2, σ, ξ, τ, h1 => let lem := h1 x A j1; simp% lem -- h x A j1
 | .lam (t := t) (A := A) (B := B) j1 j2, σ, ξ, τ, h1 =>
   let j2' := fundamental j2
   by
@@ -458,8 +350,13 @@ theorem fundamental {Γ : List Ty} : Δ&Γ ⊢ t : A -> Δ&Γ ⊨ t : A
     simp [Model.A]
     intro a h2
     apply j2'
-    apply 𝒞.su h2
-    apply 𝒞.rename h1
+    cases a
+    case _ =>
+      apply 𝒞.re
+      apply 𝒞.rename h1
+    case _ =>
+      apply 𝒞.su h2
+      apply 𝒞.rename h1
 | .app j1 j2, σ, ξ, τ, h1  =>
   let j1' := fundamental j1 σ ξ τ h1
   let j2' := fundamental j2 σ ξ τ h1
@@ -469,17 +366,17 @@ theorem fundamental {Γ : List Ty} : Δ&Γ ⊢ t : A -> Δ&Γ ⊨ t : A
   by
     apply ℰ.tlam; simp [Model.Q]; simp [ℛ]; simp only [SemanticTyping] at j'; simp only [ℰ] at j'
     intro r s A a
-    --rw [Term.smap_promote]
-    --replace h := 𝒞.lift (S := A) (A := a) h
     apply j'
     simp
-    sorry
-      --apply 𝒞.rename
+    apply 𝒞.rename
+    apply 𝒞.test h1
 | .tapp (a := a) (f := f) (K := K) (P := P) j1 j2 e, σ, ξ, τ, h1 =>
   let j1' := fundamental j1 σ ξ τ h1
   let lem := ℰ.tapp (a := a) (b := a[τ]) rfl j1'
   by subst e; simp [ℰ] at lem; simp; apply lem
 
-theorem sn : Δ&Γ ⊢ t : A -> SN Red t := λ h => sorry
-  -- let lem : SnNor (⟦ A ⟧ fun n t => True) t := fundamental h +0 (λ n t => True) (τ := (.id ty)) (λ n _ _ => SnNor.var n) |> cast (by simp)
-  -- SnNor.sound lem
+theorem id_context : 𝒞 Γ ξ (Subst.id Term) := by simp; intro i A h; apply SnNor.var
+
+theorem sn : Δ&Γ ⊢ t : A -> SnNor (⟦A⟧ ξ) t := λ h =>
+  let lem := fundamental h (Subst.id Term) (ξ) (Subst.id Ty) (id_context)
+  lem |> cast (by simp)

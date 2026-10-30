@@ -80,16 +80,7 @@ theorem Model.weaken [Model D] {A : Ty} {ξ : Nat -> D}
   rw [<-lem2]
   rw [lem3] at lem
   have lem4 : A⟨Ren.add Ty 1⟩ = A[(Ren.add Ty 1).to] := by
-    simp
-    induction A
-    case _ =>
-      simp
-    case _ ih =>
-      simp
-      simp at ih
-      sorry
-    case _ =>
-      sorry
+    norm_subst
   rw [<-lem4]
   rw [lem]
 
@@ -111,14 +102,11 @@ theorem Model.subst [Model D] {A : Ty} {σ : Subst Ty} {ξ : Nat -> D}
     case _ =>
       simp --[Subst.compose]
     case _ n =>
-      simp --[Subst.compose]
-      generalize σ.act n = z
-      cases z
-      case _ =>
-        simp
-      case _ =>
-        simp
-        sorry
+      simp
+      have lem4 : (Ty.from_action (σ.act n))⟨Ren.add Ty 1⟩ = (Ty.from_action (σ.act n))[(Ren.add Ty 1).to] := by norm_subst
+      norm_subst
+      rw [lem4]
+      apply Model.weaken
   case _ ih1 ih2 =>
     simp
     rw [ih1]

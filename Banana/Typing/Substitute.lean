@@ -11,7 +11,7 @@ structure TypingSubst (σ : Subst Term) (Δ : List Kind) (Γ1 Γ2 : List Ty) whe
 
 notation:1000 Δ:1000 " ⊢ₛ " Γ1:1000 " -[" σ "]> " Γ2:1000 => TypingSubst σ Δ Γ1 Γ2
 
-theorem TypingSubst.id : Δ ⊢ₛ X -[.id Term]> X := .mk @λ x T h => Typing.var h sorry
+--theorem TypingSubst.id : Δ ⊢ₛ X -[.id Term]> X := .mk @λ x T h => Typing.var h sorry
 
 -- theorem TypingSubst.re (j : Γ2[y]? = some A) (m : Δ ⊢ₛ Γ1 -[σ]> Γ2)
 --   : Δ ⊢ₛ (A::Γ1) -[re y::σ]> Γ2 := .mk @λ x T h =>
