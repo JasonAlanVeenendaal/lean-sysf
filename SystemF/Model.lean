@@ -1,7 +1,7 @@
 import LeanSubst
-import Banana.Term
+import SystemF.Term
 
-namespace Banana
+namespace SystemF
 
 open LeanSubst
 

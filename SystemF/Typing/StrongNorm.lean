@@ -1,17 +1,17 @@
 
 import LeanSubst
-import Banana.Typing
-import Banana.Typing.Substitute
-import Banana.Kinding.StrongNorm
---import Banana.Kinding.Value
-import Banana.Reduction
-import Banana.Model
+import SystemF.Typing
+import SystemF.Typing.Substitute
+--import SystemF.Kinding.StrongNorm
+--import SystemF.Kinding.Value
+--import SystemF.Reduction
+import SystemF.Model
 open LeanSubst
 
-namespace Banana
+namespace SystemF
 --naively following lean-sysf/OneSortHomArityGen/StrongNorm2.lean
 def SnModelSet := Term -> Prop
-def SnRedModelSet := Term -> Term -> Prop
+def SnModelRel := Term -> Term -> Prop
 
 --attempt
 def ℛ (S : SnModelSet) : SnModelSet
@@ -51,7 +51,7 @@ mutual
     --Kinding.SnNor S2 Δ a K ->
     SnNeu S3 (f •[a])
 
-  inductive SnRed : SnModelSet -> SnRedModelSet
+  inductive SnRed : SnModelSet -> SnModelRel
   | beta :
     SnNor S1 t ->
     --Δ&Γ ⊢ (λ[A]b) : (A -:> B) ->
@@ -77,10 +77,10 @@ end
 @[simp]
 instance : Model SnModelSet where
 A A B := fun
-  | λ[_] t => ∀ (a : Action Term), SnNor A a -> SnNor B t[a .: Subst.id Term, .id Ty]
+  | λ[_] t => ∀ (a : Action Term), SnNor A a -> SnNor B t[a .: .id Term, .id Ty]
   | _ => False
 Q P := fun
-  | Λ[_] t => ∀ (A : SnModelSet) (a:Action Ty), SnNor (P A) t[.id Term, a.:Subst.id Ty]
+  | Λ[_] t => ∀ (A : SnModelSet) (a:Action Ty), SnNor (P A) t[.id Term, a .: .id Ty]
   | _ => False
 
 @[simp]
@@ -93,55 +93,23 @@ def ℰ A ξ := SnNor (𝒱 A ξ)
 def 𝒞 (Γ : List Ty) (ξ : Nat -> SnModelSet) (σ : Subst Term) : Prop :=
   ∀ i A, Γ[i]? = some A -> ℰ A ξ (σ.act i)
 
---might need this later
--- structure 𝒞' (Γ : List Ty) (ξ : Nat -> SnModelSet) (σ : Subst Term) where
---  act : ∀ {i : Nat}, Γ[i]? = some A -> ℰ A ξ (σ.act i)
-
---a type substitution is needed here. since we don't have a kinding environment I think we can get away with just adding a τ
 @[simp]
-def SemanticTyping (Δ : List Kind) (Γ : List Ty) (t : Term) (A : Ty) :=
+def SemanticTyping (_ : List Kind) (Γ : List Ty) (t : Term) (A : Ty) :=
 ∀ σ ξ (τ : Subst Ty), 𝒞 Γ ξ σ -> ℰ A ξ t[σ, τ]
 
 local notation:170 Δ:170 "&" Γ:170 " ⊨ " t:170 " : " A:170 => SemanticTyping Δ Γ t A
 
 namespace SnNor
-  -- mutual
-  --   theorem sound : SnNor A t -> SN Red t
-  --   | .lam (A := T) h1 h2 => sorry
-  --   | .tlam h1 h2 => sorry
-  --   | .red h1 h2 => SnRed.sound h1 (sound h2)
-  --   | .neu h1 => sorry
-
-  --   theorem SnRed.sound : SnRed A t t' -> SN Red t' -> SN Red t
-  --   | .beta h1, h2 => sorry
-  --   | .tbeta, h2 => sorry
-  --   | .app h1, h2 => sorry
-  --   | .tapp h1, h2 => sorry
-
-  -- end
-
   theorem var x : SnNor A #x := SnNor.neu SnNeu.var
 
   mutual
     theorem SnNor.rename (r : Ren Term) (s : Ren Ty) : SnNor A t -> SnNor A t⟨r,s⟩
     | .lam (S2 := S2) (t := t) h1 h2 =>
       let j := SnNor.rename r.lift s h2
-      --let lem := HetRenIdCommute
-      SnNor.lam (S2 := S2)
-      (by simp [ℛ] at *;
-          intro r1 s2
-          replace h1 := @h1 (r >> r1) (s >> s2)
-          simp at h1
-          apply h1)
-      j
+      SnNor.lam (S2 := S2) (@λ r1 s2 => simp% @h1 (r >> r1) (s >> s2)) j
     | .tlam (S2 := S2) (t := t) h1 h2 =>
       let j := SnNor.rename r s.lift h2
-      SnNor.tlam (S2 := S2)
-      (by simp; simp [ℛ] at *;
-          intro r1 s1
-          replace h1 := @h1 (r >> r1) (s >> s1)
-          apply h1)
-      j
+      SnNor.tlam (S2 := S2) (@λ r1 s1 => simp% @h1 (r >> r1) (s >> s1)) j
     | .neu h1 => SnNor.neu (SnNeu.rename r s h1)
     | .red h1 h2 =>
       let h2' := SnNor.rename r s h2
@@ -162,10 +130,10 @@ namespace SnNor
     | .beta (S1 := S1) (S2 := S2) (t := t) (A := A) (b := b) h1 =>
       let h1' := SnNor.rename r s h1
       let lem := @SnRed.beta S1 t⟨r, s⟩ S2 A⟨s⟩ b⟨r.lift, s⟩
-      by simp at *; simp at lem; apply lem; apply h1'
+      lem h1' |> cast (by simp)
     | .tbeta (K := K) (b := b) (t := t) (S := S) =>
       let lem := SnRed.tbeta (b := b⟨r, s.lift⟩) (K := K) (S := S) (t := t⟨s⟩)
-      by simp; simp at lem; apply lem
+      lem |> cast (by simp)
     | .app h1 =>
       let h1' := SnRed.rename r s h1
       SnRed.app h1'
@@ -198,53 +166,39 @@ namespace 𝒞
   theorem re :
     𝒞 Γ ξ σ ->
     𝒞 (A::Γ) (ξ) (re x .: σ)
-  := by
-    intro h; simp only [𝒞]; intro i
-    cases i <;> simp
-    case _ =>
-      apply SnNor.neu SnNeu.var
-    case _ n =>
-      intro A j
-      replace h := h n A j
-      apply h
+  := λ h i A' j =>
+    match i with
+    | 0 => SnNor.neu SnNeu.var
+    | n + 1 => h n A' j
 
   theorem su :
     ℰ A ξ a ->
     𝒞 Γ ξ σ ->
     𝒞 (A::Γ) ξ (su a .: σ)
-  := by
-    intro h
-    simp at *
-    intro h1 i A' h3
-    cases i <;> simp
-    case _ =>
-      simp at h3
-      subst h3
-      apply h
-    case _ =>
-      simp at h3
-      apply h1
-      apply h3
+  := λ h h1 i A' h3 =>
+    match i with
+    | 0 => h |> cast (by simp at h3; subst h3; simp)
+    | n + 1 => by simp at h3; apply h1; apply h3
 
-  theorem rename {r : Ren Term} {s : Ren Ty}: 𝒞 Γ ξ σ -> 𝒞 Γ ξ (σ >> ·[r.to, s.to]) := by
-    intro h; simp [𝒞, ℰ] at *; intro i A j
-    replace h := h i A j
-    let lem := SnNor.SnNor.rename r s h
-    simp at lem
-    norm_subst
-    simp
-    exact lem
+  theorem rename {r : Ren Term} {s : Ren Ty}: 𝒞 Γ ξ σ -> 𝒞 Γ ξ (σ >> ·[r.to, s.to])
+  := λ h i A j =>
+    let lem := SnNor.SnNor.rename r s (h i A j)
+    lem |> cast (by simp at *; norm_subst)
 
   theorem lift (s : Ren Ty) :
     𝒞 Γ ξ σ ->
     𝒞 (A::Γ) (ξ) (.re 0 .: (σ >> ·[Subst.add Term 1, s.to]))
-  := by
-    intro h; apply re; apply rename h
+  := λ h => re (rename h)
 
-  theorem test :
+  theorem weaken :
     𝒞 Γ ξ σ ->
-    𝒞 Γ⟨Ren.add Ty 1⟩ (A::ξ) σ
-  := by
+    𝒞 Γ⟨Ren.add Ty 1⟩ (A::ξ) σ :=
+    -- λ h i A' h1 =>
+    -- have ⟨r, e⟩ := List.getElem_of_getElem? h1
+    -- have lem1 := Subst.stable (S := Ty) (σ := ·[Subst.add Ty 1]) (r := ·⟨Ren.add Ty 1⟩)
+    -- have lem2 := ℰ.weaken (B := A) (ξ := ξ) (A := Γ[i][Subst.add Ty 1])
+    -- sorry
+    by
     intro h
     simp only [𝒞] at *
     intro i A' h1
@@ -253,7 +207,6 @@ namespace 𝒞
     rw [<-List.rmap_getElem (by simp at r; exact r)] at e
     rw [<-e]
     rw [Subst.stable (σ := ·[Subst.add Ty 1]) (by simp)]
-    --norm_subst at e
     rw [ℰ.weaken (B := A)]
     apply h
     simp
@@ -265,64 +218,47 @@ namespace ℰ
     SnNor S f ->
     ℰ A ξ a ->
     ℰ B ξ (f • a)
-  | eq, SnNor.lam (S2 := S2) j1 j2, h2 =>
-    by
-      simp [ℰ] at *;
-      subst eq;
-      simp [ℛ] at j1; replace j1 := @j1 (.id Term) (.id Ty); simp [Model.A] at j1;
-      replace j1 := @j1 (su a) h2; --simp at j1
-      apply SnNor.red; apply SnRed.beta; apply h2; apply j1; apply S2
+  | eq, SnNor.lam (A := A') (t := t) (S2 := S2) j1 j2, h2 =>
+    have lem1 := @j1 (.id Term) (.id Ty)
+    have lem2 : 𝒱 (A -:> B) ξ (λ[A']t)⟨𝐫0(Term), 𝐫0(Ty)⟩ := lem1 |> cast (by rw [eq])
+    have lem3 : SnNor (⟦ B ⟧ ξ) t[(su a .: 𝐬0(Term)) .: SubstVec.id [Ty],] := @lem2 (su a) h2 |> cast (by simp)
+    SnNor.red (S2 := S2) (SnRed.beta h2) (lem3)
   | eq, SnNor.neu j1, h2 => SnNor.neu (SnNeu.app j1 h2)
   | eq, SnNor.red (t' := f') j1 j2, h2 =>
     let lem1 := SnRed.app (S2 := ⟦B⟧ ξ) (a := a) j1
     let lem2 := app eq j2 h2
     SnNor.red lem1 lem2
-  | eq, SnNor.tlam j1 j2, h2 =>
-    by
-      subst eq;
-      simp [ℛ] at j1
-      replace j1 := @j1 (.id Term) (.id Ty)
-      simp [Model.A] at j1
+  | eq, SnNor.tlam (K := K) (t := t) j1 j2, h2 =>
+    have lem1 : ℛ (𝒱 (A -:> B) ξ) (Λ[K]t) := j1 |> cast (by rw [eq])
+    have lem2 := @lem1 (.id Term) (.id Ty)
+    lem2 |> cast (by simp at lem2; simp [Model.A] at lem2)
 
   theorem tapp :
     S = 𝒱 (∀[K] P) ξ ->
     SnNor S f ->
     ℰ (P[su a.:.id Ty]) ξ (f •[b])
-  | eq, SnNor.lam j1 j2 =>
-    by subst eq; simp [ℛ] at j1; replace j1 := @j1 (.id Term) (.id Ty);
-       simp [Model.Q] at j1
+  | eq, SnNor.lam (A := A) (t := t) j1 j2 =>
+    have lem1 : ℛ (𝒱 (∀[K]P) ξ) (λ[A]t) := j1 |> cast (by rw [eq])
+    have lem2 := @lem1 (.id Term) (.id Ty)
+    lem2 |> cast (by simp [Model.Q] at lem2)
   | eq, SnNor.neu j1 => SnNor.neu (SnNeu.tapp j1)
   | eq, SnNor.red j1 j2 =>
     let lem1 := SnRed.tapp (S2 := ⟦∀[K]P⟧ ξ) (a := b) j1
     let lem2 := tapp (a := a) eq j2
     SnNor.red lem1 lem2
-  | eq, SnNor.tlam (S2 := S2) j1 j2 =>
-    by
-      simp [ℰ] at *
-      simp [ℛ] at j1
-      subst eq
-      replace j1 := @j1 (.id Term) (.id Ty)
-      simp [Model.Q] at j1
-      apply SnNor.red
-      apply SnRed.tbeta
-      let lem := @beta a P ξ
-      simp at lem
-      rw [lem]
-      replace j1 := @j1 (⟦a⟧ ξ) (su b)
-      apply j1
-      apply S2
+  | eq, SnNor.tlam (K := K') (t := t) (S2 := S2) j1 j2 =>
+    have lem1 : ℛ (𝒱 (∀[K]P) ξ) (Λ[K']t) := j1 |> cast (by rw [eq])
+    have lem2 : SnNor (⟦ P ⟧ (⟦ a ⟧ ξ)::ξ) t[𝐬0(Term), su b .: 𝐬0(Ty)] := @lem1 (.id Term ) (.id Ty) (⟦a⟧ ξ) (su b) |> cast (by simp)
+    have lem3 := @beta a P ξ
+    have lem4 : SnNor (⟦ P ⟧ ⟦ su a .: 𝐬0(Ty) ⟧ ξ) = SnNor (⟦ P ⟧ (⟦ a ⟧ ξ)::ξ) := lem3 |> cast (by simp)
+    SnNor.red (S2 := S2) (SnRed.tbeta) (lem2 |> cast (by simp; rw [lem4]))
 
   theorem lam :
     ℛ (𝒱 (A -:> B) ξ) (λ[C] b) ->
     ℰ (A -:> B) ξ (λ[C] b)
-  := by
-    intro h
-    apply SnNor.lam; apply h
-    simp only [ℛ] at h; simp [Model.A] at h
-    replace h := @h (Ren.add Term 1) (.id Ty) (re 0)
-    simp at h
-    apply h
-    apply SnNor.neu (SnNeu.var)
+  := λ h =>
+    have lem : SnNor (⟦ A ⟧ ξ) #0 → SnNor (⟦ B ⟧ ξ) b := @h (Ren.add Term 1) (.id Ty) (re 0) |> cast (by simp)
+    SnNor.lam h (lem (SnNor.neu SnNeu.var))
 
   theorem tlam :
     ℛ (𝒱 (∀[K]P) ξ) (Λ[K]b) ->
@@ -345,7 +281,7 @@ theorem fundamental {Γ : List Ty} : Δ&Γ ⊢ t : A -> Δ&Γ ⊨ t : A
   by
     unfold SemanticTyping at j2'
     unfold ℰ at j2'
-    apply ℰ.lam; --rw [Term.smap_promote, Term.Ty.smap_promote];
+    apply ℰ.lam
     simp only [ℛ]; simp; intro r s;
     simp [Model.A]
     intro a h2
@@ -369,7 +305,7 @@ theorem fundamental {Γ : List Ty} : Δ&Γ ⊢ t : A -> Δ&Γ ⊨ t : A
     apply j'
     simp
     apply 𝒞.rename
-    apply 𝒞.test h1
+    apply 𝒞.weaken h1
 | .tapp (a := a) (f := f) (K := K) (P := P) j1 j2 e, σ, ξ, τ, h1 =>
   let j1' := fundamental j1 σ ξ τ h1
   let lem := ℰ.tapp (a := a) (b := a[τ]) rfl j1'
@@ -378,5 +314,35 @@ theorem fundamental {Γ : List Ty} : Δ&Γ ⊢ t : A -> Δ&Γ ⊨ t : A
 theorem id_context : 𝒞 Γ ξ (Subst.id Term) := by simp; intro i A h; apply SnNor.var
 
 theorem sn : Δ&Γ ⊢ t : A -> SnNor (⟦A⟧ ξ) t := λ h =>
-  let lem := fundamental h (Subst.id Term) (ξ) (Subst.id Ty) (id_context)
-  lem |> cast (by simp)
+  simp% fundamental h (Subst.id Term) (ξ) (Subst.id Ty) (id_context)
+
+theorem preservation :
+  ListWf (★ :: Δ) Γ⟨Ren.add Ty 1⟩ ->
+  ListWf Δ Γ⟨Ren.add Ty 1⟩ ->
+  ListWf Δ Γ -> Δ&Γ ⊢ t : A ->
+  SnRed S t t' ->
+  Δ&Γ ⊢ t' : A
+| h0, h, j, .app (.lam h1 h3) h2, .beta j1 => Typing.beta j h3 h2
+| h0, h, j, .app h1 h2, .app j1 => .app (preservation h0 h j h1 j1) h2
+| h0, h, j, .tapp (K := K) (P := P) (.tlam h1) (a := a) h2 h3, .tbeta =>
+  match K with
+  | ★ => Typing.tbeta (t := a) (A := ★) h2 h0 h h1 |> cast (by subst h3; simp)
+| h0, h, j, .tapp h1 h2 h3, .tapp j1 => .tapp (preservation h0 h j h1 j1) h2 h3
+
+mutual
+  theorem SnNor.consistency : SnNor S t -> ¬(Δ&[] ⊢ t : t#x)
+  | .neu j, h => j.consistency h
+  | .red j1 j2, h => j2.consistency (x := x) (preservation .nil .nil .nil h j1)
+
+  theorem SnNeu.consistency : SnNeu S t ->  ¬(Δ&[] ⊢ t : T)
+  | .app j1 _, .app h1 h2 => j1.consistency h1
+  | .tapp j1, .tapp h1 _ h3 => j1.consistency h1
+end
+
+theorem consistency_lemma : SnNor S t -> ¬(Δ&[] ⊢ t : ∀[★]t#0)
+| .tlam _ h2, .tlam j1 => h2.consistency j1
+| .neu h1, j1 => h1.consistency j1
+| .red h1 h2, j1 => consistency_lemma h2 (preservation .nil .nil .nil j1 h1)
+
+theorem consistency : ¬(Δ&[] ⊢ t : ∀[★]t#0) := λ h =>
+  consistency_lemma (sn h (ξ := (λ _ _ => True))) (Δ := Δ) h

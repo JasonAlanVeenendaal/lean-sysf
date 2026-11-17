@@ -1,8 +1,8 @@
 
-import Banana.Typing
+import SystemF.Typing
 open LeanSubst
 
-namespace Banana
+namespace SystemF
 
 structure KindingRen (r : Ren Ty) (Δ1 Δ2 : List Kind) where
   act : ∀ {x T}, Δ1[x]? = some T -> Δ2[r.act x]? = some T
@@ -28,4 +28,4 @@ theorem Kinding.rename {r : Ren Ty} (m : Δ1 -⟨r⟩> Δ2) : Δ1 ⊢ₖ A : K -
 | arrow j1 j2 => arrow (j1.rename m) (j2.rename m)
 
 
-end Banana
+end SystemF

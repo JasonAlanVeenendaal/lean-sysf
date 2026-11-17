@@ -6,8 +6,9 @@ open LeanSubst
 
 namespace TwoSortHet
 
-structure TypingSubst (σ : Subst Term) (Δ : List Kind) (Γ1 Γ2 : List Ty) where
-  act : ∀ {x T}, Γ1[x]? = some T -> Δ&Γ2 ⊢ σ.act x : T
+structure TypingSubst (σ : Subst Term) (τ : Subst Ty) (Δ Δ' : List Unit) (Γ Γ' : List Ty) where
+  ty : KindingSubst τ Δ Δ'
+  act : ∀ {x} {T : Ty}, Γ[x]? = some T -> Δ'&Γ'[τ] ⊢ σ.act x : T[τ]
 
 notation:1000 Δ:1000 " ⊢ₛ " Γ1:1000 " -[" σ "]> " Γ2:1000 => TypingSubst σ Δ Γ1 Γ2
 

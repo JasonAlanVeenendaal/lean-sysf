@@ -1,9 +1,9 @@
 import LeanSubst
-import Banana.Term
-import Banana.Reduction
+import SystemF.Term
+import SystemF.Reduction
 open LeanSubst
 
-namespace Banana
+namespace SystemF
 
 inductive Kinding : List Kind -> Ty -> Kind -> Prop where
 | var :
@@ -93,4 +93,4 @@ notation:170 Δ:170 "&" Γ:170 " ⊢ " t:170 " : " A:170 => Typing Δ Γ t A
 -- | .all h1, .all j1 => rfl
 -- | .arrow h1 h2, .arrow j1 j2 => rfl
 
-end Banana
+end SystemF

@@ -1,10 +1,10 @@
 
 import LeanSubst
-import Banana.Typing
-import Banana.Kinding.Substitute
+import SystemF.Typing
+import SystemF.Kinding.Substitute
 open LeanSubst
 
-namespace Banana
+namespace SystemF
 
 def KSet := List Kind -> Ty -> Kind -> Prop
 def KSet.empty : KSet := λ _ _ _ => False
@@ -167,4 +167,4 @@ theorem Kinding.fundamental : Δ ⊢ₖ A : K -> Δ ⊨ₖ A : K
 | all j, _, _, h => .all $ j.fundamental $ h.lift _
 | arrow j1 j2, _, _, h => .arrow (j1.fundamental h) (j2.fundamental h)
 
-end Banana
+end SystemF

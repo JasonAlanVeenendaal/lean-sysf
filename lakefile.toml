@@ -15,7 +15,7 @@ name = "OneSortHomArityGen"
 name = "TwoSortHet"
 
 [[lean_lib]]
-name = "Banana"
+name = "SystemF"
 
 [[lean_lib]]
 name = "LeanSysF"

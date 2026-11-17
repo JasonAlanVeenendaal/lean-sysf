@@ -1,9 +1,9 @@
 
-import Banana.Typing
-import Banana.Kinding.Rename
+import SystemF.Typing
+import SystemF.Kinding.Rename
 open LeanSubst
 
-namespace Banana
+namespace SystemF
 
 structure KindingSubst (σ : Subst Ty) (Δ1 Δ2 : List Kind) where
   act : ∀ {x T}, Δ1[x]? = some T -> Δ2 ⊢ₖ σ.act x : T
@@ -14,12 +14,30 @@ theorem KindingSubst.id Δ : Δ -[.id Ty]> Δ := KindingSubst.mk λ h => .var h
 
 -- theorem KindingSubst.re (j : Δ2[y]? = some A) (m : Δ1 -[σ]> Δ2) : A::Δ1 -[re y.:σ]> Δ2 := KindingSubst.mk λ h => sorry
 
--- theorem KindingSubst.su (j : Δ2 ⊢ₖ a : A) (m : Δ1 -[σ]> Δ2) : A::Δ1 -[su a.:σ]> Δ2 := sorry
+theorem KindingSubst.su (j : Δ2 ⊢ₖ a : A) (m : Δ1 -[σ]> Δ2) : A::Δ1 -[su a.:σ]> Δ2 :=
+  .mk @λ x _ h =>
+  match x with
+  | 0 => j
+  | _ + 1 => m.act h
 
--- theorem KindingSubst.lift A :
---   Δ1 -[σ]> Δ2 ->
---   A::Δ1 -[σ.lift .nil]> A::Δ2
--- := λ ⟨h⟩ => .mk λ h2 => sorry
+theorem KindingSubst.cons {Δ Δ' τ A} (j : Δ' ⊢ₖ A : ★) (mτ : KindingSubst τ Δ Δ')
+  : KindingSubst (.su A .: τ) (★ :: Δ) Δ'
+:= ⟨λ {x T} h =>
+    match x with
+    | 0 => by simp [j]
+    | _ + 1 => by simp_all; exact mτ.act h⟩
+
+theorem KindingSubst.lift A (m : Δ1 -[σ]> Δ2 ):
+  A::Δ1 -[σ.lift []]> A::Δ2
+:= ⟨λ {x} {K} j =>
+    match x with
+    | 0 => simp% .var j
+    | n + 1 =>
+    have lem := (m.act j)
+    have lem2 := KindingRen.succ (X := Δ2) (A := A)
+    have lem3 := Kinding.rename (K := K) (A := Ty.from_action (σ.act n)) lem2
+    have lem4 := lem3 lem
+    simp% lem4⟩
 
 theorem KindingSubst.succ A : Δ -[.add Ty 1]> A::Δ := .mk λ h => Kinding.var h
 
@@ -28,12 +46,12 @@ theorem KindingSubst.succ A : Δ -[.add Ty 1]> A::Δ := .mk λ h => Kinding.var 
 -- theorem KindingRen.to (m : A -⟨r⟩> B) : A -[r.to]> B := .mk λ h =>
 -- by sorry
 
--- theorem Kinding.subst (m : Δ1 -[σ]> Δ2) : Δ1 ⊢ₖ A : K -> Δ2 ⊢ₖ A[σ] : K
--- | var h => m.act h
--- -- | lam j => lam (j.subst $ m.lift _)
--- -- | app j1 j2 => app (j1.subst m) (j2.subst m)
--- | all j => all (j.subst $ m.lift _)
--- | arrow j1 j2 => arrow (j1.subst m) (j2.subst m)
+theorem Kinding.subst (m : Δ1 -[σ]> Δ2) : Δ1 ⊢ₖ A : K -> Δ2 ⊢ₖ A[σ] : K
+| var h => m.act h
+-- | lam j => lam (j.subst $ m.lift _)
+-- | app j1 j2 => app (j1.subst m) (j2.subst m)
+| all j => all (j.subst $ m.lift _)
+| arrow j1 j2 => arrow (j1.subst m) (j2.subst m)
 
 -- theorem Kinding.beta : (A::Δ) ⊢ₖ b : B -> Δ ⊢ₖ t : A -> Δ ⊢ₖ b[su t.:.id Ty] : B
 -- | j1, j2 => subst (.su j2 $ .id _) j1
@@ -64,4 +82,4 @@ theorem KindingSubst.succ A : Δ -[.add Ty 1]> A::Δ := .mk λ h => Kinding.var 
 --   | .all j1 => Kinding.beta j1 h2 |> cast (by rw [h3])
 -- | .conv (A := A) (B := B) h1 h2 h3 => h3
 
-end Banana
+end SystemF

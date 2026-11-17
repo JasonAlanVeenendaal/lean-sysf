@@ -1,7 +1,7 @@
 import LeanSubst
 open LeanSubst
 
-namespace Banana
+namespace SystemF
 
 
 
@@ -374,4 +374,4 @@ notation f " •[" a "]" => Term.tapp f a
 
 -- theorem Ty.smap_promote : Ty.smap σ T = T[σ,] := rfl
 
-end Banana
+end SystemF
